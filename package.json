@@ -1,0 +1,16 @@
+{
+    "name": "soundoff",
+    "version": "0.0.1",
+    "description": "Sound you local sounds nibba",
+    "main": "bot.js",
+    "author": "John",
+    "dependencies": {
+        "discord": "^0.8.2",
+        "discord.io": "https://github.com/woor/discord.io/tarball/gateway_v6",
+        "discord.js": "^11.5.1",
+        "ffmpeg": "0.0.4",
+        "node-opus": "^0.3.3",
+        "winston": "^3.2.1",
+        "ytdl-core": "^1.0.3"
+    }
+}
