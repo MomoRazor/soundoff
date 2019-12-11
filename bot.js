@@ -5,6 +5,7 @@ const fs = require('fs');
 var listinv = [];
 var queue = [];
 var dispatcher = null;
+var status = true;
 
 // Initialize Discord Bot
 var bot = new Discord.Client();
@@ -37,21 +38,36 @@ fs.readFile(auth.listpath, 'utf8', function(err, contents) {
     }
 });
 
+function checkInv(name){
+    for(var i = 0; i < listinv.length; i++){
+        if((listinv[i].filename).toLowerCase() === (name).toLowerCase()){
+            return true;
+        }
+    }
+    return false;
+}
+
+function ReWriteFile(list){
+    var string = "";
+    for(var i = 0; i < list.length; i++){
+        string += list[i].filename + "," + list[i].path + "|";
+    }
+
+    fs.writeFile(auth.listpath, string, function(err){
+        if(err){
+            return console.log(err);
+        }
+    })
+}
+
 function AddToListInv(attachment, message){
-    var found = false;
 
     var shortened = attachment.filename;
 
     shortened = shortened.replace(".wav", "")
     shortened = shortened.replace(".mp3", "")
 
-    for(var i = 0; i < listinv.length; i++){
-        if((listinv[i].filename).toLowerCase() === (shortened).toLowerCase()){
-            found = true;
-            break;
-        }
-    }
-    if(!found){
+    if(!checkInv(shortened)){
         listinv.push({
             filename: shortened,
             path: attachment.proxyURL
@@ -105,11 +121,12 @@ function PlayURL(attachment, message, voiceChannel){
     voiceChannel.join()
         .then(connection =>{ 
             dispatcher = connection.playArbitraryInput(attachment.proxyURL)
+            status = true;
             message.channel.send('Ha indoqq: ' + attachment.filename);
             dispatcher.on("end", end => {
                 queue.splice(0,1)
                 if(queue.length != 0){
-                    message.channel.send('Ara gejja ohra: ' + attachment.filename);
+                    message.channel.send('Ara gejja ohra: ' + queue[0].attachment.filename);
                     PlayURL(queue[0].attachment, queue[0].message, queue[0].voiceChannel)
                 } else {
                     message.channel.send('Lest jien');
@@ -310,17 +327,171 @@ bot.on('message', async message => {
         return;
     }
 
+    
+    if (checkPrefix(message.content.toLowerCase(),`${auth.prefix}rename`)) {
+        if(listinv.length === 0){
+            message.channel.send("Ma tista tbidel xejn jekk ma hawn xejn kink")
+        } else {
+            var args = message.content.split(" ")
+            var changed = "";
+            if(!checkInv(args[1])){
+                if(queue.length === 0){
+                    if(args.length > 2){
+                        var found = false;
+                        for(var i = 0; i < listinv.length; i++){
+                            if((listinv[i].filename).toLowerCase() === (args[2]).toLowerCase()){
+                                changed = listinv[i].filename;
+                                found = true;
+                                listinv[i].filename = args[1];
+                                break;
+                            }
+                        }
+                        if(found){
+                            ReWriteFile(listinv);
+                            message.channel.send("Bumba king, bidilt '"+ changed + "' ghal '" + args[1] + "'");
+                        } else {
+                            message.channel.send("Skuzani ma sibtiex din, igiefiri ma nistax nibdilla isimha")
+                        }
+                    } else{
+                        message.channel.send("Jekk ma hemm xejn ghaddej, trid tghidli li trid nibdel bro, minniex psychic")
+                    }
+                } else {
+                    if(args.length > 2){
+                        var found = false;
+                        for(var i = 0; i < listinv.length; i++){
+                            if((listinv[i].filename).toLowerCase() === (args[2]).toLowerCase()){
+                                changed = listinv[i].filename;
+                                found = true;
+                                listinv[i].filename = args[1];
+                                break;
+                            }
+                        }
+                        if(found){
+                            ReWriteFile(listinv);
+                            message.channel.send("Bumba king, bidilt '"+ changed + "' ghal '" + args[1] + "'");
+                        } else {
+                            message.channel.send("Skuzani ma sibtiex din, igiefiri ma nistax nibdilla isimha")
+                        }
+                    } else {
+                        for(var i = 0; i < listinv.length; i++){
+                            if((listinv[i].filename).toLowerCase() === (queue[0].attachment.filename).toLowerCase()){
+                                queue[0].attachment.filename = args[1];
+                                changed = queue[0].attachment.filename;
+                                listinv[i].filename = args[1];
+                                break;
+                            }
+                        }
+                        ReWriteFile(listinv);
+                        message.channel.send("Bumba king, bidilt '"+ changed + "' li qed iddoq bhalissa, ghal '" + args[1] + "'");
+                    }
+                }
+            } else {
+                message.channel.send("Ga ghandek xi haga jisima hekk bro, ma nista insemmi xejn hekk")
+            }
+        }   
+        return;
+    }
+
+    if (checkPrefix(message.content.toLowerCase(),`${auth.prefix}delete`)) {
+        if(listinv.length === 0){
+            message.channel.send("Ma hawn xejn xi tnehhi kink")
+        } else {
+            var args = message.content.split(" ")
+            if(queue.length === 0){
+                if(args.length > 1){
+                    var found = false;
+                    for(var i = 0; i < listinv.length; i++){
+                        if((listinv[i].filename).toLowerCase() === (args[1]).toLowerCase()){
+                            found = true;
+                            listinv.splice(i,1);
+                            break;
+                        }
+                    }
+                    if(found){
+                        ReWriteFile(listinv);
+                        message.channel.send("Tajjeb mela ha nehhijlek din: " + args[1]);
+                    } else {
+                        message.channel.send("Skuzani ma sibtiex din, ma nistax innehija </3")
+                    }
+                } else {
+                    message.channel.send("Jekk ma hemm xejn ghaddej, trid tghidli x'ha innehi bro, erga prova")
+                }
+            } else {
+                if(args.length > 1){
+                    var found = false;
+                    for(var i = 0; i < listinv.length; i++){
+                        if((listinv[i].filename).toLowerCase() === (args[1]).toLowerCase()){
+                            found = true;
+                            listinv.splice(i,1);
+                            break;
+                        }
+                    }
+                    if(found){
+                        ReWriteFile(listinv);
+                        message.channel.send("Tajjeb mela ha nehhijlek din: " + args[1]);
+                    } else {
+                        message.channel.send("Skuzani ma sibtiex din, ma nistax innehija </3")
+                    }
+                } else {
+                    var target = "";
+                    for(var i = 0; i < listinv.length; i++){
+                        if((listinv[i].filename).toLowerCase() === (queue[0].attachment.filename).toLowerCase()){
+                            target = queue[0].attachment.filename;
+                            listinv.splice(i,1)
+                            break;
+                        }
+                    }
+                    ReWriteFile(listinv);
+                    message.channel.send("Tajjeb mela ha nehhijlek '" + target + "' li kienet qed idoqq, so ha inwaqqfuha ukoll");
+                    if(dispatcher != null){
+                        dispatcher.destroy();
+                    }
+                }
+            }
+        }
+        return;
+    }
+
+    
+    if (checkPrefix(message.content.toLowerCase(),`${auth.prefix}pause`)) {
+        if(dispatcher != null){
+            if(status){
+                message.channel.send("Hu nifs minna ha: " + queue[0].attachment.filename)
+                dispatcher.pause();
+                status = false;
+            }
+        }else {
+            message.channel.send("Ma hemm xejn ghaddej bro")
+        }
+        return;
+    }
+
+    if (checkPrefix(message.content.toLowerCase(),`${auth.prefix}resume`)) {
+        if(dispatcher != null){
+            if(!status){
+                message.channel.send("Ha inkomplija mela: " + queue[0].attachment.filename)
+                dispatcher.resume();
+                status = true;
+            }
+        }else {
+            message.channel.send("Ma hemm xejn ghaddej bro")
+        }
+        return;
+    }
+
     if (checkPrefix(message.content.toLowerCase(),`${auth.prefix}help`)) {
         message.channel.send(
-            "Isma naqa kemm jien semplici: \n" +
+            "Isma naqa kemm jien semplici: \n\n" +
             "\t\t- Jekk trid idoqq xi haga, kemm itella .mp3 jew .wav. Jekk trid idoqq xi haga ohra, ghid lil John. \n" +
             "\t\t- Jekk tibda idoqq u issa qed tisthi kemm tikteb 'sf!skip'... pussy. \n" +
             "\t\t- Jekk trid twaqqaf kollox ghax ghandek problemi ta' commitment 'sf!stop'. \n" +
             "\t\t- Jekk trid ticcekja x'hemm fil-queue 'sf!queue'. \n" +
             "\t\t- Jekk tixtieq tara x'niftakar 'sf!inventory'. \n" +
+            "\t\t- Jekk tixtieq tibdel l-isem ta' xi haga li niftakar, jew doqqa u bidel l-isem dak il-hin 'sf!rename {newname}' \n" +
+            "\t\t  Jew inkella ghidli liema wahda tixtieq tibdel 'sf!rename {newname} {oldname}' \n" +
             "\t\t- Biex idoqq xi haga li niftakar 'sf!play {filename}'. \n" +
             "\t\t- Jekk trid tfittex certu tip ta' diska 'sf!search {query}. \n" + 
-            "\t\t\t Jekk ha jaqalek il-pipi u ghandek bzonn tisma l-muzika malajr, kemm titfa 'play' wara indoqqlok l-ewwel wahda ez. 'sf!search {query} play'. \n" +
+            "\t\t  Jekk ha jaqalek il-pipi u ghandek bzonn tisma l-muzika malajr, kemm titfa 'play' wara indoqqlok l-ewwel wahda ez. 'sf!search {query} play'. \n\n" +
             "K'ma jahdiemx xi haga, wahlu f'John.")
         return ;
     }else{
