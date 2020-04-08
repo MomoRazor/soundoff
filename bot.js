@@ -2,9 +2,10 @@ const Discord = require('discord.js');
 const auth = require('./auth.json');
 const fs = require('fs');
 
-var gameStarted = false;
-var gameBegun = false;
-var playerIn = [];
+var listinv = [];
+var queue = [];
+var dispatcher = null;
+var status = true;
 
 // Initialize Discord Bot
 var bot = new Discord.Client();
@@ -22,16 +23,90 @@ bot.once('disconnect', () => {
     console.log('Disconnect!');
 });
 
-function shuffle(a) {
-    for (let i = a.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [a[i], a[j]] = [a[j], a[i]];
+
+
+function handlePlay(attachment, message, remember){
+    
+    const voiceChannel = message.member.voiceChannel;
+    if (!voiceChannel) {
+        message.channel.send('Trid tkun voice chat basla.');
+    } else {
+        if(queue.length === 0){
+            AddToQueue(attachment, message, voiceChannel, remember);
+            PlayURL(attachment, message, voiceChannel)
+        } else {
+            message.channel.send("Ghal wara din: "+ attachment.filename);
+            AddToQueue(attachment, message, voiceChannel, remember);
+        }
     }
-    return a;
 }
 
-function getRandomInt(max) {
-    return Math.floor(Math.random() * Math.floor(max));
+function checkInv(name){
+    for(var i = 0; i < listinv.length; i++){
+        if((listinv[i].filename).toLowerCase() === (name).toLowerCase()){
+            return true;
+        }
+    }
+    return false;
+}
+
+function ReadFile(message, callback){
+    
+    if(listinv.length === 0){
+        fs.readFile(auth.listpath+"-"+message.channel.id, 'utf8', function(err, contents) {
+            if(contents != "" && contents != undefined){
+                var list = contents.split("|")
+                list.map(listitem => {
+                    if(listitem != ""){
+                        var listitemdict = listitem.split(",")
+                        listinv.push({
+                            filename: listitemdict[0],
+                            path: listitemdict[1]
+                        })
+                    }
+                })
+            }
+            callback(message)
+        });
+    } else {
+        callback(message)
+    }
+}
+
+function ReWriteFile(list,message){
+    var string = "";
+    for(var i = 0; i < list.length; i++){
+        string += list[i].filename + "," + list[i].path + "|";
+    }
+
+    fs.writeFile(auth.listpath+"-"+message.channel.id, string, function(err){
+        if(err){
+            return console.log(err);
+        }
+    })
+}
+
+function AddToListInv(attachment, message){
+
+    var shortened = attachment.filename;
+
+    shortened = shortened.replace(".wav", "")
+    shortened = shortened.replace(".mp3", "")
+
+    if(!checkInv(shortened)){
+        listinv.push({
+            filename: shortened,
+            path: attachment.proxyURL
+        })
+        var string = shortened + "," + attachment.proxyURL + "|";
+        fs.appendFile(auth.listpath+"-"+message.channel.id, string, function(err){
+            if(err){
+                return console.log(err);
+            }
+        })
+    } else {
+        message.channel.send('Kont nafha din, stajt tismghha b\'play biss ta,... pacc.');
+    }
 }
 
 function checkPrefix(content, prefix=null){
@@ -50,280 +125,372 @@ function checkPrefix(content, prefix=null){
     }
 }
 
-function checkAdmin(id, message){    
-
-    for(var i = 0; i < playerIn.length; i++){
-        if(playerIn[i].id === id && playerIn[i].admin){
-            return true;
-        }
+function AddToQueue(attachment, message, voiceChannel, remember){   
+    if(remember){
+        AddToListInv(attachment, message);
     }
-
-    message.channel.send("Jekk ridt tmexxi missek bdejta int basla")
-
-    return false
+    queue.push({
+        attachment: attachment,
+        message: message,
+        voiceChannel: voiceChannel
+    })
 }
 
-function StartGame(){
-    var werewolves;
-    var doctor;
-    var angel;
+function PlayURL(attachment, message, voiceChannel){
 
-    //TODO to remove
-    playerIn.push({
-        id: "TEST MAN",
-        admin: false
-    })
-    
-    playerIn.push({
-        id: "TEST MAN2",
-        admin: false
-    })
-    
-    playerIn.push({
-        id: "TEST MAN3",
-        admin: false
-    })
-
-    playerIn.push({
-        id: "TEST MAN4",
-        admin: false
-    })
-
-    playerIn.push({
-        id: "TEST MAN5",
-        admin: false
-    })
-
-    var temp_players = shuffle(playerIn)
-
-    if(temp_players.length < 7){
-        werewolves = 2;
-        doctor = 1;
-        angel = 0;
-    }else if(temp_players.length === 7){
-        werewolves = 2;
-        doctor = 1;
-        angel = 1;
-    }else if(temp_players.length >= 8){
-        werewolves = Math.round(temp_players.length/3)
-        doctor = 1;
-        angel = 1; 
+    const permissions = voiceChannel.permissionsFor(message.client.user);
+    if (!permissions.has('CONNECT') || !permissions.has('SPEAK')) {
+        message.channel.send('I need the permissions to join and speak in your voice channel!');
+        return
     }
 
-    for(var i = 0; i < temp_players.length; i++){
-
-        if(werewolves > 0){
-            temp_players[i].type = "Werewolf"
-            werewolves--;
-        } else if(doctor > 0){
-            temp_players[i].type = "Doctor"
-            doctor--;
-        }else if(angel > 0){
-            temp_players[i].type = "Angel"
-            angel--;
-        }else{
-            temp_players[i].type = "Civilian"
-        }
-    }
- 
-    gameBegun = true;
-
-    playerIn = shuffle(temp_players)
-}
-
-async function YesNoListen(message){
-    if(message.author.bot) return
-    if(message.content === "Y"){
-        //TODO allow only admin
-        //TODO start Night
-        message.channel.send("GHAL QATLA");
-        bot.removeListener('message',YesNoListen)
-        
-    }else if(message.content === "N"){
-        //TODO allow only admin
-        //TODO start discussion
-        message.channel.send("Iddiskutejna LIBA");
-        bot.removeListener('message',YesNoListen)
-    }else {
-        message.channel.send("Ijja wiegeb 'Y' jew 'N' Banana!")
-    }
+    voiceChannel.join()
+        .then(connection =>{ 
+            dispatcher = connection.playArbitraryInput(attachment.proxyURL)
+            status = true;
+            message.channel.send('Ha indoqq: ' + attachment.filename);
+            dispatcher.on("end", end => {
+                queue.splice(0,1)
+                if(queue.length != 0){
+                    message.channel.send('Ara gejja ohra: ' + queue[0].attachment.filename);
+                    PlayURL(queue[0].attachment, queue[0].message, queue[0].voiceChannel)
+                } else {
+                    message.channel.send('Lest jien');
+                    voiceChannel.leave();
+                }
+            });
+        })
+        .catch(err => {
+            console.log(err)
+            message.channel.send('Fotta xi haga John, sorry bro!');
+            voiceChannel.leave();
+        });
 }
 
 bot.on('message', async message => {
-    if(message.author.bot) return
     // Our bot needs to know if it will execute a command
     // It will listen for messages that will start with `!`
 
-    if (checkPrefix(message.content.toLowerCase(),`${auth.prefix}test`)) {
-        message.channel.send("Dan test duda!")
-        return;
-    }
-
-    if (checkPrefix(message.content.toLowerCase(),`${auth.prefix}die`)) {
-        message.channel.send("Caw Zejz!")
-        bot.destroy()
-        return;
-    }
-
-    if (checkPrefix(message.content.toLowerCase(), `${auth.prefix}start`)){
-        if(!gameStarted){
-            message.channel.send("Ajma zaqqi, f'idejn <@"+ message.member.user.id +"> din. Min irid jista jithol!")
-            playerIn.push({
-                id: message.member.user.id,
-                admin: true,
-            })
-            gameStarted = true;
-        }else{
-            message.channel.send("Ga hemm wahda ghaddej pajs, mitluf ta")
-        }
-        return;
-    }
-
-    if (checkPrefix(message.content.toLowerCase(), `${auth.prefix}in`)){
-        
-        if(gameStarted){
-            if(!gameBegun){
-                var found = false;
-        
-                for(var i = 0; i < playerIn.length; i++){
-                    if(playerIn[i].id === message.member.user.id){
-                        found = true;
-                    }
-                }
-        
-                if(!found){
-        
-                    var choice = getRandomInt(4);
-                    switch(choice){
-                        case 0: 
-                            message.channel.send("Note with thanks <@"+ message.member.user.id+">")
-                            break;
-                        case 1: 
-                            message.channel.send("Il-liba diga bdejt iddejjaqni <@"+ message.member.user.id+">")
-                            break;
-                        case 2:
-                            message.channel.send("\*laughing\*. Stenn actually vera ha tilghab <@"+ message.member.user.id +"> \*laughing intensifies\*")
-                            break;
-                        case 3:
-                            message.channel.send("Welcome borza hara, awww <@"+ message.member.user.id +">")
-                            break;
-                        default:
-                            break;
-                    }
-        
-                    playerIn.push({
-                        id: message.member.user.id,
-                        admin: false,
-                    })
-        
-                    var output = "Nies s'issa: \n";
-                    for(var i = 0; i < playerIn.length; i++){
-                        if(playerIn[i].admin){
-                            output += "\t\t - <@"+playerIn[i].id+"> - il-boss \n";
-                        }else{
-                            output += "\t\t - <@"+playerIn[i].id+"> \n";
+    
+    ReadFile(message, (message) => {
+        if(message.author.bot) return;
+        if (!checkPrefix(message.content.toLowerCase())){
+            if(message.attachments === undefined || message.attachments.size === 0){
+                return
+            } else {
+                message.attachments.map(attachment => {
+                    if(attachment.filename.includes(".wav") || attachment.filename.includes(".mp3")){
+                        handlePlay(attachment, message, true);
+                    } else {
+                        if(Math.random() < 0.05){
+                            message.channel.send("Igiefiri din mhux ghalijja ee? Meh");
                         }
                     }
+                })
+                return
+            }
+           
+        } 
     
-                    message.channel.send(output)
+        if (checkPrefix(message.content.toLowerCase(),`${auth.prefix}bye`)) {
+            message.channel.send("Bye bitch")
+            bot.destroy()
+            return;
+        }
+        if (checkPrefix(message.content.toLowerCase(),`${auth.prefix}test`)) {
+            message.channel.send("Dan test duda!")
+            return;
+        }
+        if (checkPrefix(message.content.toLowerCase(),`${auth.prefix}skip`)) {
+            if(queue.length === 0){
+                message.channel.send("Int qed tiblaghhom?");
+            } else {
+                message.channel.send("Ha inwaqaf: " + queue[0].attachment.filename)
+                if(dispatcher != null){
+                    dispatcher.destroy();
+                }
+            }
+            return;
+        }
+        if (checkPrefix(message.content.toLowerCase(),`${auth.prefix}stop`)) {
+            if(queue.length === 0){
+                message.channel.send("Int qed tiblaghhom?");
+            } else {
+                message.channel.send("Ha inwaqaf kollox mela");
+                queue = [];
+                if(dispatcher != null){
+                    dispatcher.destroy();
+                }
+            }
+            return;
+        }
+        if (checkPrefix(message.content.toLowerCase(),`${auth.prefix}queue`)) {
+            if(queue.length === 0){
+                message.channel.send("Vojt habib")
+            } else {
+                var string = "Imbarazz fil-queue - " + queue.length +  " : \n";
+                queue.map(queueitem => {
+                    string += "\t\t - " + queueitem.attachment.filename + "\n";
+                })
+                message.channel.send(string)
+            }
+            return;
+        }
+    
+        if (checkPrefix(message.content.toLowerCase(),`${auth.prefix}inventory`)) {
+            if(listinv.length === 0){
+                message.channel.send("Xejn muzika bro.")
+            } else {
+                var string = "Niftakar daqshekk - " + listinv.length +  " : \n";
+                listinv.map(listitem => {
+                    //string += "\t\t - " + listitem.filename + " --- " + listitem.path + " \n";
+                    string += "\t\t - " + listitem.filename +"\n";
+                })
+                message.channel.send(string)
+            }
+            return;
+        }
+    
+        if (checkPrefix(message.content.toLowerCase(),`${auth.prefix}play`)) {
+            var args = message.content.split(" ")
+            if(listinv.length === 0){
+                message.channel.send("Ma niftakar xejn, igiefiri ghalxejn bro")
+            } else {
+                if(args.length > 1){
+                    var target = null;
+                    var found = false;
+                    for(var i = 0; i < listinv.length; i++){
+                        if((listinv[i].filename).toLowerCase() === (args[1]).toLowerCase()){
+                            found = true;
+                            target = listinv[i];
+                            break;
+                        }
+                    }
+                    if(found){
+                        var attachment = {
+                            filename: target.filename,
+                            proxyURL: target.path
+                        }
+                        handlePlay(attachment, message, false);
+                    }else{
+                        message.channel.send("Ma nafiex din, iccekja x'niftakar l-ewwel (sf!inventory).")
+                    }
+                } else {
+                    message.channel.send("Mhux ahjar tghidli play xix trumbetta? (sf!play {filename})")
+                } 
+            }
+            return;
+        }
+    
+        if (checkPrefix(message.content.toLowerCase(),`${auth.prefix}search`)) {
+            var args = message.content.split(" ")
+            if(listinv.length === 0){
+                message.channel.send("Ma niftakar xejn, igiefiri ghalxejn bro")
+            } else {
+                if(args.length > 1){
+                    var results = [];
+                    for(var i = 0; i < listinv.length; i++){
+                        if((listinv[i].filename).toLowerCase().includes((args[1]).toLowerCase())){
+                            results.push(listinv[i]);
+                        }
+                    }
+                    if(results.length != 0){
+                        var string = "Dawn sibna - " + results.length +  " : \n";
+                        results.map(result => {
+                            string += "\t\t - " + result.filename +"\n";
+                        })
+                        message.channel.send(string)
+    
+                        if(args[2] === "play"){
+                            message.channel.send("Ha indoqq l-ewwel wahda ukoll la int bla pacenzja");
+                            var attachment = {
+                                filename: results[0].filename,
+                                proxyURL: results[0].path
+                            }
+                            handlePlay(attachment,message, false)
+                        } else {
+                            message.channel.send("Jekk ridtni indoqq l-ewwel wahda li sibt, jew 'play' jew xejn");
+                        }
+                    }else{
+                        message.channel.send("Ma ghamilna xejn king, ahfirli.")
+                    }
+                } else {
+                    message.channel.send("Mhux ahjar tghidli search xix french-horn? (sf!play {query})")
+                } 
+            }
+            return;
+        }
+    
         
-                }else{
-                    var choice = getRandomInt(6);
-                    switch(choice){
-                        case 0: 
-                            message.channel.send("Ijwa ijwa fhimtek <@"+ message.member.user.id+">")
-                            break;
-                        case 1: 
-                            message.channel.send("Ok")
-                            break;
-                        case 2:
-                            message.channel.send("Warlight <@"+ message.member.user.id+">")
-                            break;
-                        case 3:
-                            message.channel.send("Jekk tibatli ohra <@"+ message.member.user.id +"> personalment nigi naqlalek il gerzuma")
-                            break;
-                        case 4:
-                            message.channel.send("<@"+message.member.user.id +"> jekk tghidli ohra ha ncempel il pulizija")
-                            break;
-                        case 5:
-                            message.channel.send("Ooooof, needy much <@"+ message.member.user.id+">")
-                            break;
-                        default:
-                            break;
+        if (checkPrefix(message.content.toLowerCase(),`${auth.prefix}rename`)) {
+            if(listinv.length === 0){
+                message.channel.send("Ma tista tbidel xejn jekk ma hawn xejn kink")
+            } else {
+                var args = message.content.split(" ")
+                var changed = "";
+                if(!checkInv(args[1])){
+                    if(queue.length === 0){
+                        if(args.length > 2){
+                            var found = false;
+                            for(var i = 0; i < listinv.length; i++){
+                                if((listinv[i].filename).toLowerCase() === (args[2]).toLowerCase()){
+                                    changed = listinv[i].filename;
+                                    found = true;
+                                    listinv[i].filename = args[1];
+                                    break;
+                                }
+                            }
+                            if(found){
+                                ReWriteFile(listinv,message);
+                                message.channel.send("Bumba king, bidilt '"+ changed + "' ghal '" + args[1] + "'");
+                            } else {
+                                message.channel.send("Skuzani ma sibtiex din, igiefiri ma nistax nibdilla isimha")
+                            }
+                        } else{
+                            message.channel.send("Jekk ma hemm xejn ghaddej, trid tghidli li trid nibdel bro, minniex psychic")
+                        }
+                    } else {
+                        if(args.length > 2){
+                            var found = false;
+                            for(var i = 0; i < listinv.length; i++){
+                                if((listinv[i].filename).toLowerCase() === (args[2]).toLowerCase()){
+                                    changed = listinv[i].filename;
+                                    found = true;
+                                    listinv[i].filename = args[1];
+                                    break;
+                                }
+                            }
+                            if(found){
+                                ReWriteFile(listinv,message);
+                                message.channel.send("Bumba king, bidilt '"+ changed + "' ghal '" + args[1] + "'");
+                            } else {
+                                message.channel.send("Skuzani ma sibtiex din, igiefiri ma nistax nibdilla isimha")
+                            }
+                        } else {
+                            for(var i = 0; i < listinv.length; i++){
+                                if((listinv[i].filename).toLowerCase() === (queue[0].attachment.filename).toLowerCase()){
+                                    queue[0].attachment.filename = args[1];
+                                    changed = queue[0].attachment.filename;
+                                    listinv[i].filename = args[1];
+                                    break;
+                                }
+                            }
+                            ReWriteFile(listinv,message);
+                            message.channel.send("Bumba king, bidilt '"+ changed + "' li qed iddoq bhalissa, ghal '" + args[1] + "'");
+                        }
+                    }
+                } else {
+                    message.channel.send("Ga ghandek xi haga jisima hekk bro, ma nista insemmi xejn hekk")
+                }
+            }   
+            return;
+        }
+    
+        if (checkPrefix(message.content.toLowerCase(),`${auth.prefix}delete`)) {
+            if(listinv.length === 0){
+                message.channel.send("Ma hawn xejn xi tnehhi kink")
+            } else {
+                var args = message.content.split(" ")
+                if(queue.length === 0){
+                    if(args.length > 1){
+                        var found = false;
+                        for(var i = 0; i < listinv.length; i++){
+                            if((listinv[i].filename).toLowerCase() === (args[1]).toLowerCase()){
+                                found = true;
+                                listinv.splice(i,1);
+                                break;
+                            }
+                        }
+                        if(found){
+                            ReWriteFile(listinv,message);
+                            message.channel.send("Tajjeb mela ha nehhijlek din: " + args[1]);
+                        } else {
+                            message.channel.send("Skuzani ma sibtiex din, ma nistax innehija </3")
+                        }
+                    } else {
+                        message.channel.send("Jekk ma hemm xejn ghaddej, trid tghidli x'ha innehi bro, erga prova")
+                    }
+                } else {
+                    if(args.length > 1){
+                        var found = false;
+                        for(var i = 0; i < listinv.length; i++){
+                            if((listinv[i].filename).toLowerCase() === (args[1]).toLowerCase()){
+                                found = true;
+                                listinv.splice(i,1);
+                                break;
+                            }
+                        }
+                        if(found){
+                            ReWriteFile(listinv,message);
+                            message.channel.send("Tajjeb mela ha nehhijlek din: " + args[1]);
+                        } else {
+                            message.channel.send("Skuzani ma sibtiex din, ma nistax innehija </3")
+                        }
+                    } else {
+                        var target = "";
+                        for(var i = 0; i < listinv.length; i++){
+                            if((listinv[i].filename).toLowerCase() === (queue[0].attachment.filename).toLowerCase()){
+                                target = queue[0].attachment.filename;
+                                listinv.splice(i,1)
+                                break;
+                            }
+                        }
+                        ReWriteFile(listinv,message);
+                        message.channel.send("Tajjeb mela ha nehhijlek '" + target + "' li kienet qed idoqq, so ha inwaqqfuha ukoll");
+                        if(dispatcher != null){
+                            dispatcher.destroy();
+                        }
                     }
                 }
-            }else{
-                message.channel.send("Ga bdiet il-loghba barri. Issa stenna u ghaggel darb' ohra")
             }
-        }else{
-            message.channel.send("Ma hemmx loghba ghaddej, Aqbad u ibda wahda int jekk ghandek il-Cookies")
+            return;
         }
-        
-    }
-
-    if (checkPrefix(message.content.toLowerCase(), `${auth.prefix}list`)){
-        if(gameStarted){
-            var output = "Nies s'issa: \n";
-            for(var i = 0; i < playerIn.length; i++){
-                if(playerIn[i].admin){
-                    output += "\t\t - <@"+playerIn[i].id+"> - il-boss \n";
-                }else{
-                    output += "\t\t - <@"+playerIn[i].id+"> \n";
-                }
-            }
-            message.channel.send(output)
-        }else{
-            message.channel.send("X'lista hij? Mela qed tiblaghom?!")
-        }
-    }
-
-    if (checkPrefix(message.content.toLowerCase(), `${auth.prefix}stop`)){
-        if(gameStarted){
-            if(checkAdmin(message.member.user.id, message)){
-                gameStarted = false;
-                gameBegun = false;
-                playerIn = []
-                message.channel.send("Piff x'int spoil sport <@" + message.member.user.id + "> imma ok")
-            }
-        }else{
-            message.channel.send("Ma hemmx loghob xi twaqqaf troglodit")
-        }
-        return;
-    }
-
-    if (checkPrefix(message.content.toLowerCase(), `${auth.prefix}begin`)){
-        if(gameStarted){
-            if(!gameBegun){
-                if(checkAdmin(message.member.user.id, message)){
-                    //TODO fix to 5 later
-                    if(playerIn.length >= 2){
-                        StartGame()
-                        message.channel.send("Il-loghba lesta, ha tibda b'lejl jew le? (Y/N).")
-
-                        bot.on('message', YesNoListen)
-                    }else{          
-                        message.channel.send("Irid ikun hemm alinqas 5 min nies. Tghallem ghodd.")
-                    }
-                }
-            }else{
-                message.channel.send("Taf kemm ilna li bdejna dahna?")
-            }
-        }else{
-            message.channel.send("Irid ikun hemm loghba l-ewwel biex tibdija bocc")
-        }
-    }
-
-    if (checkPrefix(message.content.toLowerCase(),`${auth.prefix}help`)) {
-        message.channel.send(
-            "\nJekk int Cole ma nixtieq nispjega imma fuck it: \n\n" +
-            "\t\t- Jekk trid tibda Werewolf, ikteb 'ww.start', pero ha tkun responsabli taghha king. \n" +
-            "\t\t- Jekk tixtieq tithol fil-loghba, ikteb 'ww.in'. Tipruvahiex jekk ghad ma hemmx loghba pacc. \n" +
-            "\t\t- Jekk tixtieq tara min ha jilghab, u tiggudika, ikteb 'ww.list'. Ha jiehdu ghalihom pero. \n" +
-            "\t\t- Jekk int responsabli tal-loghba, tista twaqqaf il-loghba b''ww.stop', pero kulhadd ha jobodok probabilment. \n" +
-            "\t\t- Jekk int responsabli tal-loghba u dahlu alinqas 5 min-nies, mela tista tibda il-loghba billi taghmel 'ww.begin'. \n" +
-
-            "K'ma jahdiemx xi haga, wahlu f'Gingru.")
-        return ;
-    }
     
+        
+        if (checkPrefix(message.content.toLowerCase(),`${auth.prefix}pause`)) {
+            if(dispatcher != null){
+                if(status){
+                    message.channel.send("Hu nifs minna ha: " + queue[0].attachment.filename)
+                    dispatcher.pause();
+                    status = false;
+                }
+            }else {
+                message.channel.send("Ma hemm xejn ghaddej bro")
+            }
+            return;
+        }
+    
+        if (checkPrefix(message.content.toLowerCase(),`${auth.prefix}resume`)) {
+            if(dispatcher != null){
+                if(!status){
+                    message.channel.send("Ha inkomplija mela: " + queue[0].attachment.filename)
+                    dispatcher.resume();
+                    status = true;
+                }
+            }else {
+                message.channel.send("Ma hemm xejn ghaddej bro")
+            }
+            return;
+        }
+    
+        if (checkPrefix(message.content.toLowerCase(),`${auth.prefix}help`)) {
+            message.channel.send(
+                "\nIsma naqa kemm jien semplici: \n\n" +
+                "\t\t- Jekk trid idoqq xi haga, kemm itella .mp3 jew .wav. Jekk trid idoqq xi haga ohra, ghid lil John. \n" +
+                "\t\t- Jekk tibda idoqq u issa qed tisthi kemm tikteb 'sf!skip'... pussy. \n" +
+                "\t\t- Jekk trid twaqqaf kollox ghax ghandek problemi ta' commitment 'sf!stop'. \n" +
+                "\t\t- Jekk trid ticcekja x'hemm fil-queue 'sf!queue'. \n" +
+                "\t\t- Jekk tixtieq tara x'niftakar 'sf!inventory'. \n" +
+                "\t\t- Jekk tixtieq tibdel l-isem ta' xi haga li niftakar, jew doqqa u bidel l-isem dak il-hin 'sf!rename {newname}' \n" +
+                "\t\t  Jew inkella ghidli liema wahda tixtieq tibdel 'sf!rename {newname} {oldname}' \n" +
+                "\t\t- Biex idoqq xi haga li niftakar 'sf!play {filename}'. \n" +
+                "\t\t- Jekk trid tfittex certu tip ta' diska 'sf!search {query}. \n" + 
+                "\t\t  Jekk ha jaqalek il-pipi u ghandek bzonn tisma l-muzika malajr, kemm titfa 'play' wara indoqqlok l-ewwel wahda ez. 'sf!search {query} play'. \n\n" +
+                "K'ma jahdiemx xi haga, wahlu f'John.")
+            return ;
+        }else{
+            message.channel.send("Ma tezistix dik troglodit")
+            return;
+        }
+    })
 });
