@@ -23,8 +23,6 @@ bot.once('disconnect', () => {
     console.log('Disconnect!');
 });
 
-
-
 function handlePlay(attachment, message, remember){
     
     const voiceChannel = message.member.voice.channel;
@@ -53,8 +51,6 @@ function checkInv(name){
 function ReadFile(message, callback){
     
     if(listinv.length === 0){
-        //console.log(message.channel.id);
-        //fs.readFile(auth.listpath+"-"+message.channel.id, 'utf8', function(err, contents) {
         fs.readFile(auth.listpath, 'utf8', function(err, contents) {
             if(contents != "" && contents != undefined){
                 var list = contents.split("|")
@@ -81,7 +77,6 @@ function ReWriteFile(list,message){
         string += list[i].name + "," + list[i].path + "|";
     }
 
-    //fs.writeFile(auth.listpath+"-"+message.channel.id, string, function(err){
     fs.writeFile(auth.listpath, string, function(err){
         if(err){
             return console.log(err);
@@ -102,7 +97,7 @@ function AddToListInv(attachment, message){
             path: attachment.proxyURL
         })
         var string = shortened + "," + attachment.proxyURL + "|";
-        //fs.appendFile(auth.listpath+"-"+message.channel.id, string, function(err){
+
         fs.appendFile(auth.listpath, string, function(err){    
             if(err){
                 return console.log(err);
@@ -171,13 +166,10 @@ function PlayURL(attachment, message, voiceChannel){
         });
 }
 
-bot.on('message', async message => {
-    // Our bot needs to know if it will execute a command
-    // It will listen for messages that will start with `!`
-
-    
+bot.on('message', async message => { 
     ReadFile(message, (message) => {
         if(message.author.bot) return;
+
         if (!checkPrefix(message.content.toLowerCase())){
             if(message.attachments === undefined || message.attachments.size === 0){
                 return
@@ -201,10 +193,12 @@ bot.on('message', async message => {
             bot.destroy()
             return;
         }
+
         if (checkPrefix(message.content.toLowerCase(),`${auth.prefix}test`)) {
             message.channel.send("Dan test duda!")
             return;
         }
+
         if (checkPrefix(message.content.toLowerCase(),`${auth.prefix}skip`)) {
             if(queue.length === 0){
                 message.channel.send("Int qed tiblaghhom?");
@@ -216,6 +210,7 @@ bot.on('message', async message => {
             }
             return;
         }
+
         if (checkPrefix(message.content.toLowerCase(),`${auth.prefix}stop`)) {
             if(queue.length === 0){
                 message.channel.send("Int qed tiblaghhom?");
@@ -228,6 +223,7 @@ bot.on('message', async message => {
             }
             return;
         }
+
         if (checkPrefix(message.content.toLowerCase(),`${auth.prefix}queue`)) {
             if(queue.length === 0){
                 message.channel.send("Vojt habib")
@@ -247,7 +243,6 @@ bot.on('message', async message => {
             } else {
                 var string = "Niftakar daqshekk - " + listinv.length +  " : \n";
                 listinv.map(listitem => {
-                    //string += "\t\t - " + listitem.name + " --- " + listitem.path + " \n";
                     string += "\t\t - " + listitem.name +"\n";
                 })
                 message.channel.send(string)
@@ -324,8 +319,7 @@ bot.on('message', async message => {
             }
             return;
         }
-    
-        
+      
         if (checkPrefix(message.content.toLowerCase(),`${auth.prefix}rename`)) {
             if(listinv.length === 0){
                 message.channel.send("Ma tista tbidel xejn jekk ma hawn xejn kink")
@@ -449,8 +443,7 @@ bot.on('message', async message => {
             }
             return;
         }
-    
-        
+          
         if (checkPrefix(message.content.toLowerCase(),`${auth.prefix}pause`)) {
             if(dispatcher != null){
                 if(status){
