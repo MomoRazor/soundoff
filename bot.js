@@ -27,7 +27,7 @@ bot.once('disconnect', () => {
 
 function handlePlay(attachment, message, remember){
     
-    const voiceChannel = message.member.voiceChannel;
+    const voiceChannel = message.member.voice.channel;
     if (!voiceChannel) {
         message.channel.send('Trid tkun voice chat basla.');
     } else {
@@ -35,7 +35,7 @@ function handlePlay(attachment, message, remember){
             AddToQueue(attachment, message, voiceChannel, remember);
             PlayURL(attachment, message, voiceChannel)
         } else {
-            message.channel.send("Ghal wara din: "+ attachment.filename);
+            message.channel.send("Ghal wara din: "+ attachment.name);
             AddToQueue(attachment, message, voiceChannel, remember);
         }
     }
@@ -43,7 +43,7 @@ function handlePlay(attachment, message, remember){
 
 function checkInv(name){
     for(var i = 0; i < listinv.length; i++){
-        if((listinv[i].filename).toLowerCase() === (name).toLowerCase()){
+        if((listinv[i].name).toLowerCase() === (name).toLowerCase()){
             return true;
         }
     }
@@ -53,14 +53,16 @@ function checkInv(name){
 function ReadFile(message, callback){
     
     if(listinv.length === 0){
-        fs.readFile(auth.listpath+"-"+message.channel.id, 'utf8', function(err, contents) {
+        //console.log(message.channel.id);
+        //fs.readFile(auth.listpath+"-"+message.channel.id, 'utf8', function(err, contents) {
+        fs.readFile(auth.listpath, 'utf8', function(err, contents) {
             if(contents != "" && contents != undefined){
                 var list = contents.split("|")
                 list.map(listitem => {
                     if(listitem != ""){
                         var listitemdict = listitem.split(",")
                         listinv.push({
-                            filename: listitemdict[0],
+                            name: listitemdict[0],
                             path: listitemdict[1]
                         })
                     }
@@ -76,10 +78,11 @@ function ReadFile(message, callback){
 function ReWriteFile(list,message){
     var string = "";
     for(var i = 0; i < list.length; i++){
-        string += list[i].filename + "," + list[i].path + "|";
+        string += list[i].name + "," + list[i].path + "|";
     }
 
-    fs.writeFile(auth.listpath+"-"+message.channel.id, string, function(err){
+    //fs.writeFile(auth.listpath+"-"+message.channel.id, string, function(err){
+    fs.writeFile(auth.listpath, string, function(err){
         if(err){
             return console.log(err);
         }
@@ -88,18 +91,19 @@ function ReWriteFile(list,message){
 
 function AddToListInv(attachment, message){
 
-    var shortened = attachment.filename;
+    var shortened = attachment.name;
 
     shortened = shortened.replace(".wav", "")
     shortened = shortened.replace(".mp3", "")
 
     if(!checkInv(shortened)){
         listinv.push({
-            filename: shortened,
+            name: shortened,
             path: attachment.proxyURL
         })
         var string = shortened + "," + attachment.proxyURL + "|";
-        fs.appendFile(auth.listpath+"-"+message.channel.id, string, function(err){
+        //fs.appendFile(auth.listpath+"-"+message.channel.id, string, function(err){
+        fs.appendFile(auth.listpath, string, function(err){    
             if(err){
                 return console.log(err);
             }
@@ -146,13 +150,13 @@ function PlayURL(attachment, message, voiceChannel){
 
     voiceChannel.join()
         .then(connection =>{ 
-            dispatcher = connection.playArbitraryInput(attachment.proxyURL)
+            dispatcher = connection.play(attachment.proxyURL)
             status = true;
-            message.channel.send('Ha indoqq: ' + attachment.filename);
-            dispatcher.on("end", end => {
+            message.channel.send('Ha indoqq: ' + attachment.name);
+            dispatcher.on("finish", end => {
                 queue.splice(0,1)
                 if(queue.length != 0){
-                    message.channel.send('Ara gejja ohra: ' + queue[0].attachment.filename);
+                    message.channel.send('Ara gejja ohra: ' + queue[0].attachment.name);
                     PlayURL(queue[0].attachment, queue[0].message, queue[0].voiceChannel)
                 } else {
                     message.channel.send('Lest jien');
@@ -179,7 +183,7 @@ bot.on('message', async message => {
                 return
             } else {
                 message.attachments.map(attachment => {
-                    if(attachment.filename.includes(".wav") || attachment.filename.includes(".mp3")){
+                    if(attachment.name.includes(".wav") || attachment.name.includes(".mp3")){
                         handlePlay(attachment, message, true);
                     } else {
                         if(Math.random() < 0.05){
@@ -205,7 +209,7 @@ bot.on('message', async message => {
             if(queue.length === 0){
                 message.channel.send("Int qed tiblaghhom?");
             } else {
-                message.channel.send("Ha inwaqaf: " + queue[0].attachment.filename)
+                message.channel.send("Ha inwaqaf: " + queue[0].attachment.name)
                 if(dispatcher != null){
                     dispatcher.destroy();
                 }
@@ -230,7 +234,7 @@ bot.on('message', async message => {
             } else {
                 var string = "Imbarazz fil-queue - " + queue.length +  " : \n";
                 queue.map(queueitem => {
-                    string += "\t\t - " + queueitem.attachment.filename + "\n";
+                    string += "\t\t - " + queueitem.attachment.name + "\n";
                 })
                 message.channel.send(string)
             }
@@ -243,8 +247,8 @@ bot.on('message', async message => {
             } else {
                 var string = "Niftakar daqshekk - " + listinv.length +  " : \n";
                 listinv.map(listitem => {
-                    //string += "\t\t - " + listitem.filename + " --- " + listitem.path + " \n";
-                    string += "\t\t - " + listitem.filename +"\n";
+                    //string += "\t\t - " + listitem.name + " --- " + listitem.path + " \n";
+                    string += "\t\t - " + listitem.name +"\n";
                 })
                 message.channel.send(string)
             }
@@ -260,7 +264,7 @@ bot.on('message', async message => {
                     var target = null;
                     var found = false;
                     for(var i = 0; i < listinv.length; i++){
-                        if((listinv[i].filename).toLowerCase() === (args[1]).toLowerCase()){
+                        if((listinv[i].name).toLowerCase() === (args[1]).toLowerCase()){
                             found = true;
                             target = listinv[i];
                             break;
@@ -268,7 +272,7 @@ bot.on('message', async message => {
                     }
                     if(found){
                         var attachment = {
-                            filename: target.filename,
+                            name: target.name,
                             proxyURL: target.path
                         }
                         handlePlay(attachment, message, false);
@@ -276,7 +280,7 @@ bot.on('message', async message => {
                         message.channel.send("Ma nafiex din, iccekja x'niftakar l-ewwel (sf!inventory).")
                     }
                 } else {
-                    message.channel.send("Mhux ahjar tghidli play xix trumbetta? (sf!play {filename})")
+                    message.channel.send("Mhux ahjar tghidli play xix trumbetta? (sf!play {name})")
                 } 
             }
             return;
@@ -290,21 +294,21 @@ bot.on('message', async message => {
                 if(args.length > 1){
                     var results = [];
                     for(var i = 0; i < listinv.length; i++){
-                        if((listinv[i].filename).toLowerCase().includes((args[1]).toLowerCase())){
+                        if((listinv[i].name).toLowerCase().includes((args[1]).toLowerCase())){
                             results.push(listinv[i]);
                         }
                     }
                     if(results.length != 0){
                         var string = "Dawn sibna - " + results.length +  " : \n";
                         results.map(result => {
-                            string += "\t\t - " + result.filename +"\n";
+                            string += "\t\t - " + result.name +"\n";
                         })
                         message.channel.send(string)
     
                         if(args[2] === "play"){
                             message.channel.send("Ha indoqq l-ewwel wahda ukoll la int bla pacenzja");
                             var attachment = {
-                                filename: results[0].filename,
+                                name: results[0].name,
                                 proxyURL: results[0].path
                             }
                             handlePlay(attachment,message, false)
@@ -333,10 +337,10 @@ bot.on('message', async message => {
                         if(args.length > 2){
                             var found = false;
                             for(var i = 0; i < listinv.length; i++){
-                                if((listinv[i].filename).toLowerCase() === (args[2]).toLowerCase()){
-                                    changed = listinv[i].filename;
+                                if((listinv[i].name).toLowerCase() === (args[2]).toLowerCase()){
+                                    changed = listinv[i].name;
                                     found = true;
-                                    listinv[i].filename = args[1];
+                                    listinv[i].name = args[1];
                                     break;
                                 }
                             }
@@ -353,10 +357,10 @@ bot.on('message', async message => {
                         if(args.length > 2){
                             var found = false;
                             for(var i = 0; i < listinv.length; i++){
-                                if((listinv[i].filename).toLowerCase() === (args[2]).toLowerCase()){
-                                    changed = listinv[i].filename;
+                                if((listinv[i].name).toLowerCase() === (args[2]).toLowerCase()){
+                                    changed = listinv[i].name;
                                     found = true;
-                                    listinv[i].filename = args[1];
+                                    listinv[i].name = args[1];
                                     break;
                                 }
                             }
@@ -368,10 +372,10 @@ bot.on('message', async message => {
                             }
                         } else {
                             for(var i = 0; i < listinv.length; i++){
-                                if((listinv[i].filename).toLowerCase() === (queue[0].attachment.filename).toLowerCase()){
-                                    queue[0].attachment.filename = args[1];
-                                    changed = queue[0].attachment.filename;
-                                    listinv[i].filename = args[1];
+                                if((listinv[i].name).toLowerCase() === (queue[0].attachment.name).toLowerCase()){
+                                    queue[0].attachment.name = args[1];
+                                    changed = queue[0].attachment.name;
+                                    listinv[i].name = args[1];
                                     break;
                                 }
                             }
@@ -395,7 +399,7 @@ bot.on('message', async message => {
                     if(args.length > 1){
                         var found = false;
                         for(var i = 0; i < listinv.length; i++){
-                            if((listinv[i].filename).toLowerCase() === (args[1]).toLowerCase()){
+                            if((listinv[i].name).toLowerCase() === (args[1]).toLowerCase()){
                                 found = true;
                                 listinv.splice(i,1);
                                 break;
@@ -414,7 +418,7 @@ bot.on('message', async message => {
                     if(args.length > 1){
                         var found = false;
                         for(var i = 0; i < listinv.length; i++){
-                            if((listinv[i].filename).toLowerCase() === (args[1]).toLowerCase()){
+                            if((listinv[i].name).toLowerCase() === (args[1]).toLowerCase()){
                                 found = true;
                                 listinv.splice(i,1);
                                 break;
@@ -429,8 +433,8 @@ bot.on('message', async message => {
                     } else {
                         var target = "";
                         for(var i = 0; i < listinv.length; i++){
-                            if((listinv[i].filename).toLowerCase() === (queue[0].attachment.filename).toLowerCase()){
-                                target = queue[0].attachment.filename;
+                            if((listinv[i].name).toLowerCase() === (queue[0].attachment.name).toLowerCase()){
+                                target = queue[0].attachment.name;
                                 listinv.splice(i,1)
                                 break;
                             }
@@ -450,8 +454,8 @@ bot.on('message', async message => {
         if (checkPrefix(message.content.toLowerCase(),`${auth.prefix}pause`)) {
             if(dispatcher != null){
                 if(status){
-                    message.channel.send("Hu nifs minna ha: " + queue[0].attachment.filename)
-                    dispatcher.pause();
+                    message.channel.send("Hu nifs minna ha: " + queue[0].attachment.name)
+                    dispatcher.pause(true);
                     status = false;
                 }
             }else {
@@ -463,7 +467,7 @@ bot.on('message', async message => {
         if (checkPrefix(message.content.toLowerCase(),`${auth.prefix}resume`)) {
             if(dispatcher != null){
                 if(!status){
-                    message.channel.send("Ha inkomplija mela: " + queue[0].attachment.filename)
+                    message.channel.send("Ha inkomplija mela: " + queue[0].attachment.name)
                     dispatcher.resume();
                     status = true;
                 }
@@ -479,11 +483,13 @@ bot.on('message', async message => {
                 "\t\t- Jekk trid idoqq xi haga, kemm itella .mp3 jew .wav. Jekk trid idoqq xi haga ohra, ghid lil John. \n" +
                 "\t\t- Jekk tibda idoqq u issa qed tisthi kemm tikteb 'sf!skip'... pussy. \n" +
                 "\t\t- Jekk trid twaqqaf kollox ghax ghandek problemi ta' commitment 'sf!stop'. \n" +
+                "\t\t- Jekk trid twaqqaf ghal ftit biss ghax il-commitment problems tieghek naqa izghar, 'sf!pause'. \n" +
+                "\t\t- Jekk trid darietlek d-duda reget, 'sf!resume'. \n" +
                 "\t\t- Jekk trid ticcekja x'hemm fil-queue 'sf!queue'. \n" +
                 "\t\t- Jekk tixtieq tara x'niftakar 'sf!inventory'. \n" +
                 "\t\t- Jekk tixtieq tibdel l-isem ta' xi haga li niftakar, jew doqqa u bidel l-isem dak il-hin 'sf!rename {newname}' \n" +
                 "\t\t  Jew inkella ghidli liema wahda tixtieq tibdel 'sf!rename {newname} {oldname}' \n" +
-                "\t\t- Biex idoqq xi haga li niftakar 'sf!play {filename}'. \n" +
+                "\t\t- Biex idoqq xi haga li niftakar 'sf!play {name}'. \n" +
                 "\t\t- Jekk trid tfittex certu tip ta' diska 'sf!search {query}. \n" + 
                 "\t\t  Jekk ha jaqalek il-pipi u ghandek bzonn tisma l-muzika malajr, kemm titfa 'play' wara indoqqlok l-ewwel wahda ez. 'sf!search {query} play'. \n\n" +
                 "K'ma jahdiemx xi haga, wahlu f'John.")
