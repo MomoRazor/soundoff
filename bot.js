@@ -71,10 +71,31 @@ function ReadFile(message, callback){
     }
 }
 
-function ReWriteFile(list,message){
+function DeleteSong(target){
+    for(var i = 0; i < listinv.length; i++){
+        if((listinv[i].name).toLowerCase() === target.toLowerCase()){
+            listinv.splice(i,1);
+            return target;
+        }
+    }
+    return false;
+}
+
+function UpdateSongName(target, newName){
+    for(var i = 0; i < listinv.length; i++){
+        if((listinv[i].name).toLowerCase() === target.toLowerCase()){
+            changed = listinv[i].name;
+            listinv[i].name = newName;
+            return true;
+        }
+    }
+    return false;
+}
+
+function ReWriteFile(){
     var string = "";
-    for(var i = 0; i < list.length; i++){
-        string += list[i].name + "," + list[i].path + "|";
+    for(var i = 0; i < listinv.length; i++){
+        string += listinv[i].name + "," + listinv[i].path + "|";
     }
 
     fs.writeFile(auth.listpath, string, function(err){
@@ -96,16 +117,16 @@ function AddToListInv(attachment, message){
             name: shortened,
             path: attachment.proxyURL
         })
-        var string = shortened + "," + attachment.proxyURL + "|";
-
-        fs.appendFile(auth.listpath, string, function(err){    
-            if(err){
-                return console.log(err);
-            }
-        })
     } else {
-        message.channel.send('Kont nafha din, stajt tismghha b\'play biss ta,... pacc.');
+        message.channel.send('Kont nafha din, stajt tismghha b\'play biss ta,... Pero ha nerga nitghallima ha.')
+        for(var i = 0; i < listinv.length; i++){
+            if((listinv[i].name).toLowerCase() === shortened.toLowerCase()){
+                listinv[i].path = attachment.proxyURL;
+                break;
+            }
+        }
     }
+    ReWriteFile()
 }
 
 function checkPrefix(content, prefix=null){
@@ -147,17 +168,27 @@ function PlayURL(attachment, message, voiceChannel){
         .then(connection =>{ 
             dispatcher = connection.play(attachment.proxyURL)
             status = true;
-            message.channel.send('Ha indoqq: ' + attachment.name);
-            dispatcher.on("finish", end => {
-                queue.splice(0,1)
-                if(queue.length != 0){
-                    message.channel.send('Ara gejja ohra: ' + queue[0].attachment.name);
-                    PlayURL(queue[0].attachment, queue[0].message, queue[0].voiceChannel)
-                } else {
-                    message.channel.send('Lest jien');
+            message.channel.send('Ha indoqq: ' + attachment.name)
+                .then(() => {
+                    dispatcher.on("finish", end => {
+                        if(queue.length > 1){
+                            queue.splice(0,1)
+                            message.channel.send('Ara gejja ohra: ' + queue[0].attachment.name)
+                                .then(() => {
+                                    PlayURL(queue[0].attachment, queue[0].message, queue[0].voiceChannel)
+                                })
+                        } else {
+                            queue[0].voiceChannel.leave();
+                            queue.splice(0,1)
+                            message.channel.send('Lest jien');
+                        }
+                    });    
+                })
+                .catch(error => {
+                    console.log(error)
+                    message.channel.send('Fotta xi haga John, sorry bro!');
                     voiceChannel.leave();
-                }
-            });
+                })
         })
         .catch(err => {
             console.log(err)
@@ -190,7 +221,9 @@ bot.on('message', async message => {
     
         if (checkPrefix(message.content.toLowerCase(),`${auth.prefix}bye`)) {
             message.channel.send("Bye bitch")
-            bot.destroy()
+                .then(() => {
+                    bot.destroy()
+                })
             return;
         }
 
@@ -204,9 +237,22 @@ bot.on('message', async message => {
                 message.channel.send("Int qed tiblaghhom?");
             } else {
                 message.channel.send("Ha inwaqaf: " + queue[0].attachment.name)
-                if(dispatcher != null){
-                    dispatcher.destroy();
-                }
+                    .then(() => {      
+                        if(dispatcher != null){
+                            dispatcher.destroy();
+                        }
+                        if(queue.length > 1){
+                            queue.splice(0,1)
+                            message.channel.send('Ara gejja ohra: ' + queue[0].attachment.name)
+                                .then(() => {
+                                    PlayURL(queue[0].attachment, queue[0].message, queue[0].voiceChannel)
+                                })
+                        } else {
+                            queue[0].voiceChannel.leave();
+                            queue.splice(0,1)
+                            message.channel.send('Lest jien');
+                        }
+                    })
             }
             return;
         }
@@ -215,11 +261,14 @@ bot.on('message', async message => {
             if(queue.length === 0){
                 message.channel.send("Int qed tiblaghhom?");
             } else {
-                message.channel.send("Ha inwaqaf kollox mela");
-                queue = [];
-                if(dispatcher != null){
-                    dispatcher.destroy();
-                }
+                message.channel.send("Ha inwaqaf kollox mela")
+                    .then(() => {
+                        queue[0].voiceChannel.leave();
+                        queue = [];
+                        if(dispatcher != null){
+                            dispatcher.destroy();
+                        }
+                    })
             }
             return;
         }
@@ -241,7 +290,7 @@ bot.on('message', async message => {
             if(listinv.length === 0){
                 message.channel.send("Xejn muzika bro.")
             } else {
-                var string = "Niftakar daqshekk - " + listinv.length +  " : \n";
+                var string = "Niftakar " + listinv.length +  " diski : \n";
                 listinv.map(listitem => {
                     string += "\t\t - " + listitem.name +"\n";
                 })
@@ -299,17 +348,22 @@ bot.on('message', async message => {
                             string += "\t\t - " + result.name +"\n";
                         })
                         message.channel.send(string)
+                            .then(() => {
+                                if(args[2] === "play"){
+                                    message.channel.send("Ha indoqq l-ewwel wahda ukoll la int bla pacenzja")
+                                        .then(() => {
+                                            var attachment = {
+                                                name: results[0].name,
+                                                proxyURL: results[0].path
+                                            }
+                                            handlePlay(attachment,message, false)
+                                        })
+                                } else {
+                                    message.channel.send("Jekk ridtni indoqq l-ewwel wahda li sibt, jew 'play' jew xejn");
+                                }
+
+                            })
     
-                        if(args[2] === "play"){
-                            message.channel.send("Ha indoqq l-ewwel wahda ukoll la int bla pacenzja");
-                            var attachment = {
-                                name: results[0].name,
-                                proxyURL: results[0].path
-                            }
-                            handlePlay(attachment,message, false)
-                        } else {
-                            message.channel.send("Jekk ridtni indoqq l-ewwel wahda li sibt, jew 'play' jew xejn");
-                        }
                     }else{
                         message.channel.send("Ma ghamilna xejn king, ahfirli.")
                     }
@@ -328,18 +382,9 @@ bot.on('message', async message => {
                 var changed = "";
                 if(!checkInv(args[1])){
                     if(queue.length === 0){
-                        if(args.length > 2){
-                            var found = false;
-                            for(var i = 0; i < listinv.length; i++){
-                                if((listinv[i].name).toLowerCase() === (args[2]).toLowerCase()){
-                                    changed = listinv[i].name;
-                                    found = true;
-                                    listinv[i].name = args[1];
-                                    break;
-                                }
-                            }
-                            if(found){
-                                ReWriteFile(listinv,message);
+                        if(args.length > 2){                 
+                            if(UpdateSongName(args[2], args[1])){
+                                ReWriteFile();
                                 message.channel.send("Bumba king, bidilt '"+ changed + "' ghal '" + args[1] + "'");
                             } else {
                                 message.channel.send("Skuzani ma sibtiex din, igiefiri ma nistax nibdilla isimha")
@@ -349,17 +394,8 @@ bot.on('message', async message => {
                         }
                     } else {
                         if(args.length > 2){
-                            var found = false;
-                            for(var i = 0; i < listinv.length; i++){
-                                if((listinv[i].name).toLowerCase() === (args[2]).toLowerCase()){
-                                    changed = listinv[i].name;
-                                    found = true;
-                                    listinv[i].name = args[1];
-                                    break;
-                                }
-                            }
-                            if(found){
-                                ReWriteFile(listinv,message);
+                            if(UpdateSongName(args[2], args[1])){
+                                ReWriteFile();
                                 message.channel.send("Bumba king, bidilt '"+ changed + "' ghal '" + args[1] + "'");
                             } else {
                                 message.channel.send("Skuzani ma sibtiex din, igiefiri ma nistax nibdilla isimha")
@@ -373,7 +409,7 @@ bot.on('message', async message => {
                                     break;
                                 }
                             }
-                            ReWriteFile(listinv,message);
+                            ReWriteFile();
                             message.channel.send("Bumba king, bidilt '"+ changed + "' li qed iddoq bhalissa, ghal '" + args[1] + "'");
                         }
                     }
@@ -391,17 +427,11 @@ bot.on('message', async message => {
                 var args = message.content.split(" ")
                 if(queue.length === 0){
                     if(args.length > 1){
-                        var found = false;
-                        for(var i = 0; i < listinv.length; i++){
-                            if((listinv[i].name).toLowerCase() === (args[1]).toLowerCase()){
-                                found = true;
-                                listinv.splice(i,1);
-                                break;
-                            }
-                        }
-                        if(found){
-                            ReWriteFile(listinv,message);
-                            message.channel.send("Tajjeb mela ha nehhijlek din: " + args[1]);
+                        if(DeleteSong(args[1])){
+                            message.channel.send("Tajjeb mela ha nehhijlek din: " + args[1])
+                                .then(() => {
+                                    ReWriteFile();
+                                })
                         } else {
                             message.channel.send("Skuzani ma sibtiex din, ma nistax innehija </3")
                         }
@@ -410,34 +440,22 @@ bot.on('message', async message => {
                     }
                 } else {
                     if(args.length > 1){
-                        var found = false;
-                        for(var i = 0; i < listinv.length; i++){
-                            if((listinv[i].name).toLowerCase() === (args[1]).toLowerCase()){
-                                found = true;
-                                listinv.splice(i,1);
-                                break;
-                            }
-                        }
-                        if(found){
-                            ReWriteFile(listinv,message);
-                            message.channel.send("Tajjeb mela ha nehhijlek din: " + args[1]);
+                        if(DeleteSong(args[1])){
+                            message.channel.send("Tajjeb mela ha nehhijlek din: " + args[1])
+                                .then(() => {
+                                    ReWriteFile();
+                                })
                         } else {
                             message.channel.send("Skuzani ma sibtiex din, ma nistax innehija </3")
                         }
                     } else {
-                        var target = "";
-                        for(var i = 0; i < listinv.length; i++){
-                            if((listinv[i].name).toLowerCase() === (queue[0].attachment.name).toLowerCase()){
-                                target = queue[0].attachment.name;
-                                listinv.splice(i,1)
-                                break;
-                            }
-                        }
-                        ReWriteFile(listinv,message);
-                        message.channel.send("Tajjeb mela ha nehhijlek '" + target + "' li kienet qed idoqq, so ha inwaqqfuha ukoll");
-                        if(dispatcher != null){
-                            dispatcher.destroy();
-                        }
+                        message.channel.send("Tajjeb mela ha nehhijlek '" + DeleteSong(queue[0].attachment.name) + "' li kienet qed idoqq, so ha inwaqqfuha ukoll")
+                            .then(() => {
+                                ReWriteFile();
+                                if(dispatcher != null){
+                                    dispatcher.destroy();
+                                }
+                            })
                     }
                 }
             }
@@ -447,9 +465,11 @@ bot.on('message', async message => {
         if (checkPrefix(message.content.toLowerCase(),`${auth.prefix}pause`)) {
             if(dispatcher != null){
                 if(status){
-                    message.channel.send("Hu nifs minna ha: " + queue[0].attachment.name)
-                    dispatcher.pause(true);
-                    status = false;
+                    message.channel.send("Mela ha inwaqaf naqa " + queue[0].attachment.name)
+                        .then(() => {
+                            dispatcher.pause(true);
+                            status = false;
+                        })
                 }
             }else {
                 message.channel.send("Ma hemm xejn ghaddej bro")
@@ -460,9 +480,11 @@ bot.on('message', async message => {
         if (checkPrefix(message.content.toLowerCase(),`${auth.prefix}resume`)) {
             if(dispatcher != null){
                 if(!status){
-                    message.channel.send("Ha inkomplija mela: " + queue[0].attachment.name)
-                    dispatcher.resume();
-                    status = true;
+                    message.channel.send("Ha inkomplija min " + queue[0].attachment.name)
+                        .then(() => {
+                            dispatcher.resume();
+                            status = true;
+                        })
                 }
             }else {
                 message.channel.send("Ma hemm xejn ghaddej bro")
