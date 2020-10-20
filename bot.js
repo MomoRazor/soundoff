@@ -252,9 +252,6 @@ bot.on('message', async message => {
         } else {
             if(args.length > 1){
                 
-                console.log(args[1]);
-                console.log(listinv);
-
                 if(listinv[args[1].toLowerCase()]){
                     var attachment = {
                         name: args[1],
