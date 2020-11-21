@@ -24,7 +24,7 @@ bot.once('disconnect', () => {
     console.log('Disconnect!');
 });
 
-function handlePlay(attachment, message, remember){
+const handlePlay = (attachment, message, remember) => {
     
     const voiceChannel = message.member.voice.channel;
     if (!voiceChannel) {
@@ -40,12 +40,12 @@ function handlePlay(attachment, message, remember){
     }
 }
 
-function loadSongs(){
+const loadSongs = () =>{
     var rawdata = fs.readFileSync(auth.listpath);
     listinv = JSON.parse(rawdata);
 }
 
-function UpdateSongName(target, newName){
+const UpdateSongName = (target, newName) => {
     if(listinv[target.toLowerCase()]){
         listinv[newName.toLowerCase()] = listinv[target.toLowerCase()];
         delete listinv[target.toLowerCase()]
@@ -54,7 +54,7 @@ function UpdateSongName(target, newName){
     return false;
 }
 
-function ReWriteFile(){
+const ReWriteFile = () => {
     fs.writeFile("list.json", JSON.stringify(listinv), (err) => {
         if (err) {
             console.log(err);
@@ -62,7 +62,7 @@ function ReWriteFile(){
     });
 }
 
-function AddToListInv(attachment, message){
+const AddToListInv = (attachment, message) => {
 
     var shortened = attachment.name;
 
@@ -77,7 +77,7 @@ function AddToListInv(attachment, message){
     ReWriteFile();
 }
 
-function checkPrefix(content, prefix=null){
+const checkPrefix = (content, prefix=null) => {
     if(prefix === null){
         if(content.substring(0,3) === auth.prefix){
             return true;
@@ -93,7 +93,7 @@ function checkPrefix(content, prefix=null){
     }
 }
 
-function AddToQueue(attachment, message, voiceChannel, remember){   
+const AddToQueue = (attachment, message, voiceChannel, remember) => {   
     if(remember){
         AddToListInv(attachment, message);
     }
@@ -104,7 +104,7 @@ function AddToQueue(attachment, message, voiceChannel, remember){
     })
 }
 
-function PlayURL(attachment, message, voiceChannel){
+const PlayURL = (attachment, message, voiceChannel) => {
 
     const permissions = voiceChannel.permissionsFor(message.client.user);
     if (!permissions.has('CONNECT') || !permissions.has('SPEAK')) {
