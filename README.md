@@ -1,6 +1,8 @@
 # soundoff
 
-A simple discord bot that allows you to upload your own sounds (.mp3 or .wav) to Discord to be played for all member in voice chat. 
+A simple discord bot that allows you to upload your own sounds (.mp3) to Discord to be played for all member in voice chat.
+
+All it does is use the uploaded file on your channel and plays it's link for all to hear.
 
 Currently intended for private use.
 
