@@ -6,6 +6,6 @@
     "author": "John",
     "dependencies": {
         "@discordjs/opus": "^0.3.3",
-        "discord.js": "^12.4.1"
+        "discord.js": "^12.5.1"
     }
 }
