@@ -79,17 +79,9 @@ const AddToListInv = (attachment, message) => {
 
 const checkPrefix = (content, prefix=null) => {
     if(prefix === null){
-        if(content.substring(0,3) === auth.prefix){
-            return true;
-        } else {
-            return false;
-        }
+        return content.substring(0,3) === auth.prefix
     } else {
-        if(content.substring(0,prefix.length) === prefix){
-            return true;
-        } else {
-            return false;
-        }
+        return content.substring(0,prefix.length) === prefix
     }
 }
 
@@ -154,7 +146,7 @@ bot.on('message', async message => {
             return
         } else {
             message.attachments.map(attachment => {
-                if(attachment.name.includes(".wav") || attachment.name.includes(".mp3")){
+                if(attachment.name.includes(".mp3")){
                     handlePlay(attachment, message, true);
                 } else {
                     if(Math.random() < 0.05){
@@ -164,7 +156,6 @@ bot.on('message', async message => {
             })
             return
         }
-    
     } 
 
     if (checkPrefix(message.content.toLowerCase(),`${auth.prefix}bye`)) {
