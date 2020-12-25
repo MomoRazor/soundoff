@@ -259,11 +259,11 @@ bot.on('message', async message => {
                     }
                     handlePlay(attachment, message, false);
                 }else{
-                    message.channel.send("Ma nafiex din, iccekja x'niftakar l-ewwel (sf!inventory).")
+                    message.channel.send("Ma nafiex din, iccekja x'niftakar l-ewwel ("+auth.prefix+"inventory).")
                 }
 
             } else {
-                message.channel.send("Mhux ahjar tghidli play xix trumbetta? (sf!play {name})")
+                message.channel.send("Mhux ahjar tghidli play xix trumbetta? ("+auth.prefix+"play {name})")
             } 
         }
         return;
@@ -307,7 +307,7 @@ bot.on('message', async message => {
                 
                 }
             } else {
-                message.channel.send("Mhux ahjar tghidli search xix french-horn? (sf!play {query})")
+                message.channel.send("Mhux ahjar tghidli search xix french-horn? ("+auth.prefix+"play {query})")
             } 
         }
         return;
@@ -430,17 +430,17 @@ bot.on('message', async message => {
         message.channel.send(
             "\nIsma naqa kemm jien semplici: \n\n" +
             "\t\t- Jekk trid idoqq xi haga, kemm itella .mp3 jew .wav. Jekk trid idoqq xi haga ohra, ghid lil John. \n" +
-            "\t\t- Jekk tibda idoqq u issa qed tisthi kemm tikteb 'sf!skip'... pussy. \n" +
-            "\t\t- Jekk trid twaqqaf kollox ghax ghandek problemi ta' commitment 'sf!stop'. \n" +
-            "\t\t- Jekk trid twaqqaf ghal ftit biss ghax il-commitment problems tieghek naqa izghar, 'sf!pause'. \n" +
-            "\t\t- Jekk trid darietlek d-duda reget, 'sf!resume'. \n" +
-            "\t\t- Jekk trid ticcekja x'hemm fil-queue 'sf!queue'. \n" +
-            "\t\t- Jekk tixtieq tara x'niftakar 'sf!inventory'. \n" +
-            "\t\t- Jekk tixtieq tibdel l-isem ta' xi haga li niftakar, jew doqqa u bidel l-isem dak il-hin 'sf!rename {newname}' \n" +
-            "\t\t  Jew inkella ghidli liema wahda tixtieq tibdel 'sf!rename {newname} {oldname}' \n" +
-            "\t\t- Biex idoqq xi haga li niftakar 'sf!play {name}'. \n" +
-            "\t\t- Jekk trid tfittex certu tip ta' diska 'sf!search {query}. \n" + 
-            "\t\t  Jekk ha jaqalek il-pipi u ghandek bzonn tisma l-muzika malajr, kemm titfa 'play' wara indoqqlok l-ewwel wahda ez. 'sf!search {query} play'. \n\n" +
+            "\t\t- Jekk tibda idoqq u issa qed tisthi kemm tikteb '"+auth.prefix+"skip'... pussy. \n" +
+            "\t\t- Jekk trid twaqqaf kollox ghax ghandek problemi ta' commitment '"+auth.prefix+"stop'. \n" +
+            "\t\t- Jekk trid twaqqaf ghal ftit biss ghax il-commitment problems tieghek naqa izghar, '"+auth.prefix+"pause'. \n" +
+            "\t\t- Jekk trid darietlek d-duda reget, '"+auth.prefix+"resume'. \n" +
+            "\t\t- Jekk trid ticcekja x'hemm fil-queue '"+auth.prefix+"queue'. \n" +
+            "\t\t- Jekk tixtieq tara x'niftakar '"+auth.prefix+"inventory'. \n" +
+            "\t\t- Jekk tixtieq tibdel l-isem ta' xi haga li niftakar, jew doqqa u bidel l-isem dak il-hin '"+auth.prefix+"rename {newname}' \n" +
+            "\t\t  Jew inkella ghidli liema wahda tixtieq tibdel '"+auth.prefix+"rename {newname} {oldname}' \n" +
+            "\t\t- Biex idoqq xi haga li niftakar '"+auth.prefix+"play {name}'. \n" +
+            "\t\t- Jekk trid tfittex certu tip ta' diska '"+auth.prefix+"search {query}. \n" + 
+            "\t\t  Jekk ha jaqalek il-pipi u ghandek bzonn tisma l-muzika malajr, kemm titfa 'play' wara indoqqlok l-ewwel wahda ez. '"+auth.prefix+"search {query} play'. \n\n" +
             "K'ma jahdiemx xi haga, wahlu f'John.")
         return ;
     }else{
