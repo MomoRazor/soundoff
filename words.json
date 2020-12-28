@@ -1,0 +1,16 @@
+{
+    "languages": [
+        "en",
+        "mt"
+    ],
+    "phrases":[
+        {
+            "noChannel": "Please enter a voice channel.",
+            "next": "Next up:"
+        },
+        {
+            "noChannel": "Hemm bzonn tkun f'voice channel bro.",
+            "next": "Issa jmiss:"   
+        }
+    ]
+}
