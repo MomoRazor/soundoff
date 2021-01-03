@@ -1,10 +1,16 @@
-const Discord = require('discord.js')
-const setup = require('./setup.json')
-const auth = require(setup.auth.path+setup.auth.name)
-const words = require(setup.words.path+setup.words.name)
-const listinv = require(setup.list.path+setup.list.name)
-const playlists = require(setup.playlist.path+setup.playlist.name)
-const fs = require('fs')
+import Discord from  "discord.js"
+import fs from "fs"
+import { createRequire } from "module";
+
+import {login, setInitialListeners, checkPrefix, listenToMessage, auth} from "./auth/index.js"
+import {getLines, updateLang } from "./lang/index.js"
+
+const listPath = "list.json"
+const playlistPath = "playlists.json"
+
+const require = createRequire(import.meta.url)
+const listinv = require("./"+listPath)
+const playlists = require("./"+playlistPath)
 
 var queue = []
 var dispatcher = null
@@ -12,31 +18,21 @@ var status = true
 
 // Initialize Discord Bot
 var bot = new Discord.Client()
-bot.login(auth.token)
 
-bot.once('ready', function (evt) {
-    console.log('Connected')
-})
-
-bot.once('reconnecting', () => {
-    console.log('Reconnecting!')
-})
-
-bot.once('disconnect', () => {
-    console.log('Disconnect!')
-})
+login(bot)
+setInitialListeners(bot)
 
 const handlePlay = (attachment, message, remember) => {
     
     const voiceChannel = message.member.voice.channel
     if (!voiceChannel) {
-        message.channel.send('Please enter a voice channel.')
+        message.channel.send(getLines("noChannel"))
     } else {
         if(queue.length === 0){
             AddToQueue(attachment, message, voiceChannel, remember)
             PlayURL(attachment, message, voiceChannel)
         } else {
-            message.channel.send("Next up: "+ attachment.name)
+            message.channel.send(getLines("next")+ attachment.name)
             AddToQueue(attachment, message, voiceChannel, remember)
         }
     }
@@ -53,7 +49,7 @@ const UpdateSongName = (target, newName) => {
 
 const UpdateStorage = (updateSongs, updatePlaylists) => {
     if(updateSongs){
-        fs.writeFile(setup.list.name, JSON.stringify(listinv), (err) => {
+        fs.writeFile(listPath, JSON.stringify(listinv), (err) => {
             if (err) {
                 console.log(err)
             }
@@ -61,7 +57,7 @@ const UpdateStorage = (updateSongs, updatePlaylists) => {
     }
 
     if(updatePlaylists){
-        fs.writeFile(setup.playlist.name, JSON.stringify(playlists), (err) => {
+        fs.writeFile(playlistPath, JSON.stringify(playlists), (err) => {
             if (err) {
                 console.log(err)
             }
@@ -76,19 +72,11 @@ const AddToListInv = (attachment, message) => {
     shortened = shortened.replace(".mp3", "")
 
     if(listinv[shortened.toLowerCase()]){
-        message.channel.send('This song was already saved, and could be played with sf!play. It has now be overriden')
+        message.channel.send('This song was already saved, and could be played with sf!play. It has now be overridden')
     }
     listinv[shortened.toLowerCase()] = attachment.proxyURL
 
     UpdateStorage(true)
-}
-
-const checkPrefix = (content, prefix=null) => {
-    if(prefix === null){
-        return content.substring(0,3) === setup.prefix
-    } else {
-        return content.substring(0,prefix.length) === prefix
-    }
 }
 
 const AddToQueue = (attachment, message, voiceChannel, remember) => {   
@@ -143,28 +131,20 @@ const PlayURL = (attachment, message, voiceChannel) => {
         })
 }
 
-bot.on('message', async message => { 
-    if(message.author.bot) return
-
+listenToMessage(bot, (message) => {
     if (!checkPrefix(message.content.toLowerCase())){
         if(message.attachments !== undefined && message.attachments.size !== 0){
             message.attachments.map(attachment => {
                 if(attachment.name.includes(".mp3")){
                     handlePlay(attachment, message, true)
                 }
-                return
+                return true
             })
         }
-        return
+        return true
     } 
 
-    if (checkPrefix(message.content.toLowerCase(),`${setup.prefix}bye`)) {
-        message.channel.send("Asta Pasta!")
-        bot.destroy()
-        return
-    }
-
-    if (checkPrefix(message.content.toLowerCase(),`${setup.prefix}skip`)) {
+    if (checkPrefix(message.content.toLowerCase(),`${auth.prefix}skip`)) {
         if(queue.length === 0){
             message.channel.send("Nothing to skip!")
         } else {
@@ -186,10 +166,10 @@ bot.on('message', async message => {
                     }
                 })
         }
-        return
+        return true
     }
 
-    if (checkPrefix(message.content.toLowerCase(),`${setup.prefix}stop`)) {
+    if (checkPrefix(message.content.toLowerCase(),`${auth.prefix}stop`)) {
         if(queue.length === 0){
             message.channel.send("Int qed tiblaghhom?")
         } else {
@@ -202,10 +182,10 @@ bot.on('message', async message => {
                     }
                 })
         }
-        return
+        return true
     }
 
-    if (checkPrefix(message.content.toLowerCase(),`${setup.prefix}queue`)) {
+    if (checkPrefix(message.content.toLowerCase(),`${auth.prefix}queue`)) {
         if(queue.length === 0){
             message.channel.send("Vojt habib")
         } else {
@@ -215,10 +195,10 @@ bot.on('message', async message => {
             })
             message.channel.send(string)
         }
-        return
+        return true
     }
 
-    if (checkPrefix(message.content.toLowerCase(),`${setup.prefix}inventory`)) {
+    if (checkPrefix(message.content.toLowerCase(),`${auth.prefix}inventory`)) {
         var keys = Object.keys(listinv)
         if(keys.length === 0){
             message.channel.send("Xejn muzika bro.")
@@ -231,10 +211,10 @@ bot.on('message', async message => {
 
             message.channel.send(string)
         }
-        return
+        return true
     }
 
-    if (checkPrefix(message.content.toLowerCase(),`${setup.prefix}play`)) {
+    if (checkPrefix(message.content.toLowerCase(),`${auth.prefix}play`)) {
         var args = message.content.split(" ")
         if(Object.keys(listinv).length === 0){
             message.channel.send("Ma niftakar xejn, igiefiri ghalxejn bro")
@@ -248,17 +228,17 @@ bot.on('message', async message => {
                     }
                     handlePlay(attachment, message, false)
                 }else{
-                    message.channel.send("Ma nafiex din, iccekja x'niftakar l-ewwel ("+setup.prefix+"inventory).")
+                    message.channel.send("Ma nafiex din, iccekja x'niftakar l-ewwel ("+auth.prefix+"inventory).")
                 }
 
             } else {
-                message.channel.send("Mhux ahjar tghidli play xix trumbetta? ("+setup.prefix+"play {name})")
+                message.channel.send("Mhux ahjar tghidli play xix trumbetta? ("+auth.prefix+"play {name})")
             } 
         }
-        return
+        return true
     }
 
-    if (checkPrefix(message.content.toLowerCase(),`${setup.prefix}search`)) {
+    if (checkPrefix(message.content.toLowerCase(),`${auth.prefix}search`)) {
         var args = message.content.split(" ")
         if(Object.keys(listinv).length === 0){
             message.channel.send("Ma niftakar xejn, igiefiri ghalxejn bro")
@@ -296,13 +276,13 @@ bot.on('message', async message => {
                 
                 }
             } else {
-                message.channel.send("Mhux ahjar tghidli search xix french-horn? ("+setup.prefix+"play {query})")
+                message.channel.send("Mhux ahjar tghidli search xix french-horn? ("+auth.prefix+"play {query})")
             } 
         }
-        return
+        return true
     }
 
-    if (checkPrefix(message.content.toLowerCase(),`${setup.prefix}rename`)) {
+    if (checkPrefix(message.content.toLowerCase(),`${auth.prefix}rename`)) {
         if(Object.keys(listinv).length === 0){
             message.channel.send("Ma tista tbidel xejn jekk ma hawn xejn kink")
         } else {
@@ -337,10 +317,10 @@ bot.on('message', async message => {
                 message.channel.send("Ga ghandek xi haga jisima hekk bro, ma nista insemmi xejn hekk")
             }
         }   
-        return
+        return true
     }
 
-    if (checkPrefix(message.content.toLowerCase(),`${setup.prefix}delete`)) {
+    if (checkPrefix(message.content.toLowerCase(),`${auth.prefix}delete`)) {
         if(Object.keys(listinv).length === 0){
             message.channel.send("Ma hawn xejn xi tnehhi kink")
         } else {
@@ -378,10 +358,10 @@ bot.on('message', async message => {
                 }
             }
         }
-        return
+        return true
     }
     
-    if (checkPrefix(message.content.toLowerCase(),`${setup.prefix}pause`)) {
+    if (checkPrefix(message.content.toLowerCase(),`${auth.prefix}pause`)) {
         if(dispatcher != null){
             if(status){
                 message.channel.send("Mela ha inwaqaf naqa " + queue[0].attachment.name)
@@ -393,10 +373,10 @@ bot.on('message', async message => {
         }else {
             message.channel.send("Ma hemm xejn ghaddej bro")
         }
-        return
+        return true
     }
 
-    if (checkPrefix(message.content.toLowerCase(),`${setup.prefix}resume`)) {
+    if (checkPrefix(message.content.toLowerCase(),`${auth.prefix}resume`)) {
         if(dispatcher != null){
             if(!status){
                 message.channel.send("Ha inkomplija min " + queue[0].attachment.name)
@@ -408,28 +388,7 @@ bot.on('message', async message => {
         }else {
             message.channel.send("Ma hemm xejn ghaddej bro")
         }
-        return
+        return true
     }
 
-    if (checkPrefix(message.content.toLowerCase(),`${setup.prefix}help`)) {
-        message.channel.send(
-            "\nIsma naqa kemm jien semplici: \n\n" +
-            "\t\t- Jekk trid idoqq xi haga, kemm itella .mp3 jew .wav. Jekk trid idoqq xi haga ohra, ghid lil John. \n" +
-            "\t\t- Jekk tibda idoqq u issa qed tisthi kemm tikteb '"+setup.prefix+"skip'... pussy. \n" +
-            "\t\t- Jekk trid twaqqaf kollox ghax ghandek problemi ta' commitment '"+setup.prefix+"stop'. \n" +
-            "\t\t- Jekk trid twaqqaf ghal ftit biss ghax il-commitment problems tieghek naqa izghar, '"+setup.prefix+"pause'. \n" +
-            "\t\t- Jekk trid darietlek d-duda reget, '"+setup.prefix+"resume'. \n" +
-            "\t\t- Jekk trid ticcekja x'hemm fil-queue '"+setup.prefix+"queue'. \n" +
-            "\t\t- Jekk tixtieq tara x'niftakar '"+setup.prefix+"inventory'. \n" +
-            "\t\t- Jekk tixtieq tibdel l-isem ta' xi haga li niftakar, jew doqqa u bidel l-isem dak il-hin '"+setup.prefix+"rename {newname}' \n" +
-            "\t\t  Jew inkella ghidli liema wahda tixtieq tibdel '"+setup.prefix+"rename {newname} {oldname}' \n" +
-            "\t\t- Biex idoqq xi haga li niftakar '"+setup.prefix+"play {name}'. \n" +
-            "\t\t- Jekk trid tfittex certu tip ta' diska '"+setup.prefix+"search {query}. \n" + 
-            "\t\t  Jekk ha jaqalek il-pipi u ghandek bzonn tisma l-muzika malajr, kemm titfa 'play' wara indoqqlok l-ewwel wahda ez. '"+setup.prefix+"search {query} play'. \n\n" +
-            "K'ma jahdiemx xi haga, wahlu f'John.")
-        return 
-    }else{
-        message.channel.send("Ma tezistix dik troglodit")
-        return
-    }
 })

@@ -1,11 +1,12 @@
 {
     "name": "soundoff",
-    "version": "1.0.1",
-    "description": "Sound you local sounds nibba",
-    "main": "bot.js",
+    "version": "2.0.1",
+    "description": "Use it to show you local sounds to everyone! (in your channel)",
     "author": "John",
+    "type": "module",
     "dependencies": {
         "@discordjs/opus": "^0.3.3",
         "discord.js": "^12.5.1"
-    }
+    },
+    "devDependencies": {}
 }
