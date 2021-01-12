@@ -2,7 +2,7 @@ import fs from "fs"
 import { createRequire } from "module";
 const require = createRequire(import.meta.url);
 
-export const word = require("./words.json");
+export const words = require("./words.json");
 
 export const updateLang = (lang) => {
     words.selected = lang
