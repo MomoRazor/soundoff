@@ -29,16 +29,16 @@ const handlePlay = (attachment, message, remember) => {
         message.channel.send(getLines("noChannel"))
     } else {
         if(queue.length === 0){
-            AddToQueue(attachment, message, voiceChannel, remember)
-            PlayURL(attachment, message, voiceChannel)
+            addToQueue(attachment, message, voiceChannel, remember)
+            playURL(attachment, message, voiceChannel)
         } else {
             message.channel.send(getLines("next")+ attachment.name)
-            AddToQueue(attachment, message, voiceChannel, remember)
+            addToQueue(attachment, message, voiceChannel, remember)
         }
     }
 }
 
-const UpdateSongName = (target, newName) => {
+const updateSongName = (target, newName) => {
     if(listinv[target.toLowerCase()]){
         listinv[newName.toLowerCase()] = listinv[target.toLowerCase()]
         delete listinv[target.toLowerCase()]
@@ -47,7 +47,7 @@ const UpdateSongName = (target, newName) => {
     return false
 }
 
-const UpdateStorage = (updateSongs, updatePlaylists) => {
+const updateStorage = (updateSongs, updatePlaylists) => {
     if(updateSongs){
         fs.writeFile(listPath, JSON.stringify(listinv), (err) => {
             if (err) {
@@ -65,7 +65,7 @@ const UpdateStorage = (updateSongs, updatePlaylists) => {
     }
 }
 
-const AddToListInv = (attachment, message) => {
+const addToListInv = (attachment, message) => {
 
     var shortened = attachment.name
 
@@ -76,12 +76,12 @@ const AddToListInv = (attachment, message) => {
     }
     listinv[shortened.toLowerCase()] = attachment.proxyURL
 
-    UpdateStorage(true)
+    updateStorage(true)
 }
 
-const AddToQueue = (attachment, message, voiceChannel, remember) => {   
+const addToQueue = (attachment, message, voiceChannel, remember) => {   
     if(remember){
-        AddToListInv(attachment, message)
+        addToListInv(attachment, message)
     }
     queue.push({
         attachment: attachment,
@@ -90,7 +90,7 @@ const AddToQueue = (attachment, message, voiceChannel, remember) => {
     })
 }
 
-const PlayURL = (attachment, message, voiceChannel) => {
+const playURL = (attachment, message, voiceChannel) => {
 
     const permissions = voiceChannel.permissionsFor(message.client.user)
     if (!permissions.has('CONNECT') || !permissions.has('SPEAK')) {
@@ -157,7 +157,7 @@ listenToMessage(bot, (message) => {
                         queue.splice(0,1)
                         message.channel.send('Next up: ' + queue[0].attachment.name)
                             .then(() => {
-                                PlayURL(queue[0].attachment, queue[0].message, queue[0].voiceChannel)
+                                playURL(queue[0].attachment, queue[0].message, queue[0].voiceChannel)
                             })
                     } else {
                         queue[0].voiceChannel.leave()
@@ -290,8 +290,8 @@ listenToMessage(bot, (message) => {
             if(!listinv(args[1].toLowerCase())){
                 if(queue.length === 0){
                     if(args.length > 2){                 
-                        if(UpdateSongName(args[2], args[1])){
-                            UpdateStorage(true)
+                        if(updateSongName(args[2], args[1])){
+                            updateStorage(true)
                             message.channel.send("Bumba king, bidilt '"+ args[2] + "' ghal '" + args[1] + "'")
                         } else {
                             message.channel.send("Skuzani ma sibtiex din, igiefiri ma nistax nibdilla isimha")
@@ -301,15 +301,15 @@ listenToMessage(bot, (message) => {
                     }
                 } else {
                     if(args.length > 2){
-                        if(UpdateSongName(args[2], args[1])){
-                            UpdateStorage(true)
+                        if(updateSongName(args[2], args[1])){
+                            updateStorage(true)
                             message.channel.send("Bumba king, bidilt '"+ args[2] + "' ghal '" + args[1] + "'")
                         } else {
                             message.channel.send("Skuzani ma sibtiex din, igiefiri ma nistax nibdilla isimha")
                         }
                     } else {
-                        UpdateSongName(queue[0].attachment.name, args[1])
-                        UpdateStorage(true)
+                        updateSongName(queue[0].attachment.name, args[1])
+                        updateStorage(true)
                         message.channel.send("Bumba king, bidilt '"+ queue[0].attachment.name + "' ghal '" + args[1] + "'")    
                     }
                 }
@@ -330,7 +330,7 @@ listenToMessage(bot, (message) => {
                     if(listinv[args[1].toLowerCase()]){
                         delete listinv[args[1].toLowerCase()]
                         message.channel.send("Tajjeb mela ha nehhijlek din: " + args[1])
-                        UpdateStorage(true)
+                        updateStorage(true)
                     }else{
                         message.channel.send("What is dead may never die!")
                     }
@@ -342,7 +342,7 @@ listenToMessage(bot, (message) => {
                     if(listinv[args[1].toLowerCase()]){
                         delete listinv[args[1].toLowerCase()]
                         message.channel.send("Tajjeb mela ha nehhijlek din: " + args[1])
-                        UpdateStorage(true)
+                        updateStorage(true)
                     }else{
                         message.channel.send("What is dead may never die!")
                     }
@@ -350,7 +350,7 @@ listenToMessage(bot, (message) => {
                     message.channel.send("Tajjeb mela ha nehhijlek '" + queue[0].attachment.name + "' li kienet qed idoqq, so ha inwaqqfuha ukoll")
                         .then(() => {
                             delete listinv[queue[0].attachment.name]
-                            UpdateStorage(true)
+                            updateStorage(true)
                             if(dispatcher != null){
                                 dispatcher.destroy()
                             }

@@ -4,6 +4,10 @@ const require = createRequire(import.meta.url);
 
 export const words = require("./words.json");
 
+export const getLangSelection = () => {
+    return words.languages
+}
+
 export const updateLang = (lang) => {
     words.selected = lang
 
