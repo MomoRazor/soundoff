@@ -109,7 +109,7 @@ const playURL = (attachment, message, voiceChannel) => {
                             queue.splice(0,1)
                             message.channel.send('Next up:' + queue[0].attachment.name)
                                 .then(() => {
-                                    PlayURL(queue[0].attachment, queue[0].message, queue[0].voiceChannel)
+                                    playURL(queue[0].attachment, queue[0].message, queue[0].voiceChannel)
                                 })
                         } else {
                             queue[0].voiceChannel.leave()
