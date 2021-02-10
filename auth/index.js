@@ -1,4 +1,5 @@
 import { createRequire } from "module";
+import {getLines } from "../lang/index.js"
 const require = createRequire(import.meta.url);
 
 export const auth = require("./auth.json");
@@ -8,7 +9,7 @@ export const login = (bot) => {
 }
 
 export const setInitialListeners = (bot) => {
-    bot.once('ready', function (evt) {
+    bot.once('ready', () => {
         console.log('Connected')
     })
     

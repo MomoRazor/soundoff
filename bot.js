@@ -3,7 +3,7 @@ import fs from "fs"
 import { createRequire } from "module";
 
 import {login, setInitialListeners, checkPrefix, listenToMessage, auth} from "./auth/index.js"
-import {getLines, updateLang } from "./lang/index.js"
+import {getLines } from "./lang/index.js"
 
 const listPath = "list.json"
 const playlistPath = "playlists.json"
@@ -105,6 +105,7 @@ const playURL = (attachment, message, voiceChannel) => {
             message.channel.send('Now Playing:' + attachment.name)
                 .then(() => {
                     dispatcher.on("finish", end => {
+                        console.log(end)
                         if(queue.length > 1){
                             queue.splice(0,1)
                             message.channel.send('Next up:' + queue[0].attachment.name)
@@ -112,7 +113,8 @@ const playURL = (attachment, message, voiceChannel) => {
                                     playURL(queue[0].attachment, queue[0].message, queue[0].voiceChannel)
                                 })
                         } else {
-                            queue[0].voiceChannel.leave()
+                            dispatcher.destroy()
+                            voiceChannel.leave()
                             queue.splice(0,1)
                             message.channel.send('Done!')
                         }
@@ -366,7 +368,7 @@ listenToMessage(bot, (message) => {
             if(status){
                 message.channel.send("Mela ha inwaqaf naqa " + queue[0].attachment.name)
                     .then(() => {
-                        dispatcher.pause(true)
+                        dispatcher.pause()
                         status = false
                     })
             }
