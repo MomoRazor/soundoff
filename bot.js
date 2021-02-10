@@ -9,15 +9,21 @@ const listPath = "list.json"
 const playlistPath = "playlists.json"
 
 const require = createRequire(import.meta.url)
+const dotenv = require('dotenv')
 const listinv = require("./"+listPath)
 const playlists = require("./"+playlistPath)
 
+dotenv.config({path:'./.env'})
 var queue = []
 var dispatcher = null
 var status = true
 
 // Initialize Discord Bot
 var bot = new Discord.Client()
+
+if(!process.env.TOKEN){
+    console.error("Enviornmental Value TOKEN is missing!")
+}
 
 login(bot)
 setInitialListeners(bot)

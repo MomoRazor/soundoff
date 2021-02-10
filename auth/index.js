@@ -5,7 +5,7 @@ const require = createRequire(import.meta.url);
 export const auth = require("./auth.json");
 
 export const login = (bot) => {
-    bot.login(auth.token)
+    bot.login(process.env.TOKEN)
 }
 
 export const setInitialListeners = (bot) => {
@@ -45,11 +45,13 @@ export const listenToMessage = (bot, callback, helpCall=true, byeCall=true, igno
             return 
         }
 
-        if (byeCall && checkPrefix(message.content.toLowerCase(),`${auth.prefix}bye`)) {
-            message.channel.send(getLines("bye"))
-            bot.destroy()
-            return
-        }
+        // if (byeCall && checkPrefix(message.content.toLowerCase(),`${auth.prefix}bye`)) {
+        //     message.channel.send(getLines("bye"))
+        //         .then(() => {
+        //             bot.destroy()
+        //         })
+        //     return
+        // }
 
         if(!callback(message)){        
             message.channel.send(getLines("404"))
