@@ -1,14 +1,15 @@
 import {
-	GuildMember,
-	Message,
-	MessageAttachment,
-	User,
-	VoiceChannel,
-} from 'discord.js'
+	AudioPlayerStatus,
+	createAudioPlayer,
+	createAudioResource,
+	joinVoiceChannel,
+} from '@discordjs/voice'
+import { Message, MessageAttachment, User, VoiceChannel } from 'discord.js'
 import { getLine } from './lang'
 import { PhraseList, QueuedSong, Sound } from './type'
 
 export let queue: QueuedSong[] = []
+export const player = createAudioPlayer()
 
 export const addToQueue = (
 	sound: Sound,
@@ -41,60 +42,47 @@ export const playQueue = (index?: number) => {
 	}
 }
 
-export const play = (queue: QueuedSong) => {
-	const permissions = queue.voiceChannel.permissionsFor(
-		queue.message.client.user as User
+export const play = async (queuedSong: QueuedSong) => {
+	const permissions = queuedSong.voiceChannel.permissionsFor(
+		queuedSong.message.client.user as User
 	)
+
 	if (
 		!permissions ||
 		!permissions.has('CONNECT') ||
 		!permissions.has('SPEAK')
 	) {
-		queue.message.channel.send(getLine(PhraseList.permissions))
+		await queuedSong.message.channel.send(getLine(PhraseList.permissions))
 		return
 	}
 
-	queue.voiceChannel
-		.join()
-		.then((connection) => {
-			dispatcher = connection.play(attachment.proxyURL)
-			status = true
-			message.channel
-				.send('Now Playing:' + attachment.name)
-				.then(() => {
-					dispatcher.on('finish', (end) => {
-						if (queue.length > 1) {
-							queue.splice(0, 1)
-							message.channel
-								.send('Next up:' + queue[0].attachment.name)
-								.then(() => {
-									playURL(
-										queue[0].attachment,
-										queue[0].message,
-										queue[0].voiceChannel
-									)
-								})
-						} else {
-							dispatcher.destroy()
-							voiceChannel.leave()
-							queue.splice(0, 1)
-							message.channel.send('Done!')
-						}
-					})
-				})
-				.catch((error) => {
-					console.log(error)
-					message.channel.send(
-						'Error encountered, please contact me because I clearly suck.'
-					)
-					voiceChannel.leave()
-				})
-		})
-		.catch((err) => {
-			console.log(err)
-			message.channel.send(
-				'Error encountered, please contact me because I clearly suck.'
+	const connection = joinVoiceChannel({
+		channelId: queuedSong.voiceChannel.id,
+		guildId: queuedSong.voiceChannel.guild.id,
+		adapterCreator: queuedSong.voiceChannel.guild.voiceAdapterCreator,
+	})
+
+	connection.subscribe(player)
+	const resource = createAudioResource(queuedSong.url)
+	player.play(resource)
+
+	await queuedSong.message.channel.send(
+		getLine(PhraseList.nowPlaying) + queuedSong.attachment.name
+	)
+
+	player.on(AudioPlayerStatus.Idle, async () => {
+		removeFromQueue()
+
+		if (queue.length > 0) {
+			await queuedSong.message.channel.send(
+				getLine(PhraseList.nextPlaying) + queue[0].attachment.name
 			)
-			voiceChannel.leave()
-		})
+			play(queue[0])
+		} else {
+			connection.destroy()
+			await queuedSong.message.channel.send(
+				getLine(PhraseList.done) + queuedSong.attachment.name
+			)
+		}
+	})
 }

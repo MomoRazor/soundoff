@@ -10,12 +10,12 @@ import {
 	setInitialListeners,
 	checkPrefix,
 	listenToMessage,
+	prefix,
 } from './auth.js'
 import { envChecker } from './enviornment.js'
 import { getLine } from './lang.js'
+import { queue } from './queneing.js'
 import { PhraseList } from './type.js'
-
-let dispatcher
 
 if (envChecker()) {
 	// Initialize Discord Bot
@@ -53,9 +53,9 @@ if (envChecker()) {
 			return true
 		}
 
-		if (checkPrefix(message.content.toLowerCase(), `${auth.prefix}skip`)) {
+		if (checkPrefix(message.content.toLowerCase(), `${prefix}skip`)) {
 			if (queue.length === 0) {
-				message.channel.send('Nothing to skip!')
+				await message.channel.send(getLine(PhraseList.nothingSkipping))
 			} else {
 				message.channel
 					.send('Stopping: ' + queue[0].attachment.name)

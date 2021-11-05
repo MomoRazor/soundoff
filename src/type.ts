@@ -30,6 +30,10 @@ export enum PhraseList {
 	reconnecting = 'Reconnecting',
 	instruction = 'Instruction',
 	permissions = 'permissions',
+	nowPlaying = 'nowPlaying',
+	nextPlaying = 'nextPlaying',
+	done = 'done',
+	nothingSkipping = 'nothingSkipping',
 }
 
 export interface LanguageConfig extends LanguageList {

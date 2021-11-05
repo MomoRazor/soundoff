@@ -26,6 +26,10 @@ export let languageConfig: LanguageConfig = {
 		Reconnecting: "aaaaand I'm back.",
 		permissions:
 			'I need the permissions to join and speak in your voice channel!',
+		nowPlaying: 'Now Playing: ',
+		nextPlaying: 'Next: ',
+		done: 'Done!',
+		nothingSkipping: 'Nothing to skip!',
 	},
 	MT: {
 		Instruction: `\nIsma naqa kemm jien semplici: \n\n
@@ -49,6 +53,10 @@ export let languageConfig: LanguageConfig = {
 		notFound: "Ma sibnijiex din ta'.",
 		Reconnecting: 'Ħrabt u ġejt.',
 		permissions: 'Ghandek bzonn itini il-permess tal-MEPA xbin!',
+		nowPlaying: 'Ha indoqq: ',
+		nextPlaying: 'Issa jmiss: ',
+		done: 'Bil-lest!',
+		nothingSkipping: "Tajba hara, ma hawn xejn x'inwaqaf",
 	},
 }
 
